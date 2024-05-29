@@ -5,14 +5,15 @@
 #include <cstdint>
 #include <ctime>
 
+#include "Buckets.h"
 #include "Utils.h"
 
 using namespace BloomFilterApp;
 namespace BloomFilterModels {
 
     // CountingBloomFilter structure and methods
-    struct CountingBloomFilter {
-        std::vector<uint8_t> buckets; // Bucket array for data storage
+    class CountingBloomFilter {
+        Buckets buckets; // Bucket array
         std::size_t m; // Filter size (number of buckets)
         std::size_t k; // Number of hash functions
         uint32_t count; // Number of items added
@@ -21,20 +22,13 @@ namespace BloomFilterModels {
         // std::unique_ptr<HashAlgorithm> hash; // Hash algorithm object
 
         CountingBloomFilter(std::size_t n, uint8_t b, double fpRate, const std::vector<uint8_t>& data = {}, uint32_t countExist = 0) :
-            buckets(Utils::OptimalMCounting(n, fpRate), b), // Initialize buckets with specified size and bit width
+            buckets(Buckets(Utils::OptimalMCounting(n, fpRate), b, data.data(), data.size())), // Initialize buckets 
             m(Utils::OptimalMCounting(n, fpRate)), // Calculate filter size
             k(Utils::OptimalKCounting(fpRate)), // Calculate number of hash functions
             count(countExist), // Initialize count
             maxCapacity(n), // Set maximum capacity
-            fpRate(fpRate), // Set false-positive rate
-            hash(Defaults::GetDefaultHashAlgorithm()) // Create a hash algorithm object
+            fpRate(fpRate) // Set false-positive rate
         {
-            // If data is provided, add it to the filter
-            if (!data.empty()) {
-                for (const auto& item : data) {
-                    Add(item);
-                }
-            }
         }
 
         // Returns the filter capacity
@@ -148,7 +142,9 @@ namespace BloomFilterModels {
 
             return member;
         }
-    };
+
+        ~CountingBloomFilter() {}
+    }; // end of CountingBloomFilter
 
     // CountingScalableBloomFilter structure and methods
     struct CountingScalableBloomFilter {
@@ -159,6 +155,12 @@ namespace BloomFilterModels {
         uint32_t s; // Scalable growth factor
         std::time_t syncDate; // Synchronization date
 
+        /// @brief 
+        /// @param fpRate 
+        /// @param r 
+        /// @param p 
+        /// @param s 
+        /// @param data 
         CountingScalableBloomFilter(double fpRate, double r, uint32_t p = Defaults::MAX_COUNT_NUMBER, uint32_t s = Defaults::SCALABLE_GROWTH, const std::vector<std::vector<uint8_t>>& data = {}) :
             r(r), fp(fpRate), p(p), s(s), syncDate(std::time(nullptr))
         {
