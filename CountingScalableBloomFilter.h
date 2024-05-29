@@ -21,13 +21,17 @@ namespace BloomFilterModels {
         double fpRate; // Target false-positive rate
         // std::unique_ptr<HashAlgorithm> hash; // Hash algorithm object
 
-        CountingBloomFilter(std::size_t n, uint8_t b, double fpRate, const std::vector<uint8_t>& data = {}, uint32_t countExist = 0) :
-            buckets(Buckets(Utils::OptimalMCounting(n, fpRate), b, data.data(), data.size())), // Initialize buckets 
-            m(Utils::OptimalMCounting(n, fpRate)), // Calculate filter size
-            k(Utils::OptimalKCounting(fpRate)), // Calculate number of hash functions
-            count(countExist), // Initialize count
-            maxCapacity(n), // Set maximum capacity
-            fpRate(fpRate) // Set false-positive rate
+        CountingBloomFilter(std::size_t n, 
+                            uint8_t b, 
+                            double fpRate, 
+                            const    std::vector<uint8_t>& data = {},
+                            uint32_t countExist                 = 0) :
+            buckets    (Buckets(Utils::OptimalMCounting(n, fpRate), b, data.data(), data.size())),   // Initialize buckets 
+            m          (Utils::OptimalMCounting(n, fpRate)),                                         // Calculate filter size
+            k          (Utils::OptimalKCounting(fpRate)),                                            // Calculate number of hash functions
+            count      (countExist),                                                                 // Initialize count
+            maxCapacity(n),                                                                          // Set maximum capacity
+            fpRate     (fpRate)                                                                      // Set false-positive rate
         {
         }
 
@@ -56,7 +60,7 @@ namespace BloomFilterModels {
             // Check if all hash function indices are set in the bucket array
             for (std::size_t i = 0; i < k; ++i) {
                 std::size_t index = (lower + upper * i) % m;
-                if (buckets[index] == 0) {
+                if (buckets.Get(index) == 0{
                     return false;
                 }
             }
