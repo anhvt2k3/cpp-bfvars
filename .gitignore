@@ -1,0 +1,21 @@
+# Ignore build artifacts
+build/
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Ignore object files
+*.o
+*.obj
+
+# Ignore generated files
+Makefile
+CMakeLists.txt.user
+
+# Ignore Visual Studio Code settings
+.vscode/
+
+# Ignore compiled output
+out/
