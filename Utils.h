@@ -45,7 +45,7 @@ namespace BloomFilterApp
             return static_cast<uint32_t>(optimalK);
         }
 
-        static HashKernelReturnValue HashKernel(const std::vector<uint8_t>& data, const std::string& algorithm)
+        static HashKernelReturnValue HashKernel(const std::vector<uint8_t>& data, const std::string& algorithm = "sha256")
         {
             std::vector<uint8_t> hashBytes(SHA256_DIGEST_LENGTH);
             SHA256_CTX sha256;

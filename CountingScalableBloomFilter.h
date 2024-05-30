@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <ctime>
 
+#include "Defaults.h"
 #include "Buckets.h"
 #include "Utils.h"
 
@@ -14,14 +15,15 @@ namespace BloomFilterModels {
     // CountingBloomFilter structure and methods
     class CountingBloomFilter {
         Buckets buckets; // Bucket array
-        std::size_t m; // Filter size (number of buckets)
-        std::size_t k; // Number of hash functions
+        uint32_t m; // Filter size (number of buckets)
+        uint32_t k; // Number of hash functions
         uint32_t count; // Number of items added
         uint32_t maxCapacity; // Maximum capacity of the filter
         double fpRate; // Target false-positive rate
         // std::unique_ptr<HashAlgorithm> hash; // Hash algorithm object
 
-        CountingBloomFilter(std::size_t n, 
+    public:
+        CountingBloomFilter(uint32_t n, 
                             uint8_t b, 
                             double fpRate, 
                             const    std::vector<uint8_t>& data = {},
@@ -34,14 +36,13 @@ namespace BloomFilterModels {
             fpRate     (fpRate)                                                                      // Set false-positive rate
         {
         }
-
         // Returns the filter capacity
-        std::size_t Capacity() const {
+        uint32_t Capacity() const {
             return m;
         }
 
         // Returns the number of hash functions
-        std::size_t K() const {
+        uint32_t K() const {
             return k;
         }
 
@@ -53,14 +54,14 @@ namespace BloomFilterModels {
         // Tests for membership of the data.
         // Returns true if the data is probably a member, false otherwise.
         bool Test(const std::vector<uint8_t>& data) const {
-            auto hashKernel = Utils::HashKernel(data, hash.get()); // Generate hash kernels
-            std::size_t lower = hashKernel.LowerBaseHash;
-            std::size_t upper = hashKernel.UpperBaseHash;
+            auto hashKernel = Utils::HashKernel(data); // Generate hash kernels
+            uint32_t lower = hashKernel.LowerBaseHash;
+            uint32_t upper = hashKernel.UpperBaseHash;
 
             // Check if all hash function indices are set in the bucket array
-            for (std::size_t i = 0; i < k; ++i) {
-                std::size_t index = (lower + upper * i) % m;
-                if (buckets.Get(index) == 0{
+            for (uint32_t i = 0; i < k; ++i) {
+                if (buckets.Get(uint32_t((lower + upper * i) % m)) == 0)
+                {
                     return false;
                 }
             }
@@ -71,14 +72,13 @@ namespace BloomFilterModels {
         // Adds the data to the filter.
         // Returns a reference to the filter for chaining.
         CountingBloomFilter& Add(const std::vector<uint8_t>& data) {
-            auto hashKernel = Utils::HashKernel(data, hash.get()); // Generate hash kernels
-            std::size_t lower = hashKernel.LowerBaseHash;
-            std::size_t upper = hashKernel.UpperBaseHash;
+            auto hashKernel = Utils::HashKernel(data); // Generate hash kernels
+            uint32_t lower = hashKernel.LowerBaseHash;
+            uint32_t upper = hashKernel.UpperBaseHash;
 
             // Set the K bits in the bucket array
-            for (std::size_t i = 0; i < k; ++i) {
-                std::size_t index = (lower + upper * i) % m;
-                buckets[index]++;
+            for (uint32_t i = 0; i < k; ++i) {
+                buckets.Increment(uint32_t((lower + upper * i) % m), 1);
             }
 
             count++;
@@ -88,31 +88,32 @@ namespace BloomFilterModels {
         // Resets the filter to its original state.
         // Returns a reference to the filter for chaining.
         CountingBloomFilter& Reset() {
-            std::fill(buckets.begin(), buckets.end(), 0); // Clear bucket array
+            buckets.Reset(); // Clear bucket array
             count = 0; // Reset count
             return *this;
         }
 
+        //@ unsupported
         // Sets the hashing function used in the filter.
-        void SetHash(HashAlgorithm* h) {
-            hash.reset(h); // Set the hash algorithm object
-        }
+        // void SetHash(HashAlgorithm* h) {
+        //     hash.reset(h); // Set the hash algorithm object
+        // }
 
         // Tests for membership of the data and adds it to the filter if it doesn't exist.
         // Returns true if the data was probably in the filter, false otherwise.
         bool TestAndAdd(const std::vector<uint8_t>& data) {
-            auto hashKernel = Utils::HashKernel(data, hash.get()); // Generate hash kernels
-            std::size_t lower = hashKernel.LowerBaseHash;
-            std::size_t upper = hashKernel.UpperBaseHash;
+            auto hashKernel = Utils::HashKernel(data); // Generate hash kernels
+            uint32_t lower = hashKernel.LowerBaseHash;
+            uint32_t upper = hashKernel.UpperBaseHash;
             bool member = true;
 
             // Check if all hash function indices are set in the bucket array and set them if not
-            for (std::size_t i = 0; i < k; ++i) {
-                std::size_t index = (lower + upper * i) % m;
-                if (buckets[index] == 0) {
+            for (uint32_t i = 0; i < k; ++i) {
+                uint32_t index = uint32_t((lower + upper * i) % m);
+                if (buckets.Get(index) == 0) {
                     member = false;
                 }
-                buckets[index]++;
+                buckets.Increment(index, 1);
             }
 
             count++;
@@ -122,16 +123,16 @@ namespace BloomFilterModels {
         // Tests for membership of the data and removes it from the filter if it exists.
         // Returns true if the data was probably in the filter, false otherwise.
         bool TestAndRemove(const std::vector<uint8_t>& data) {
-            auto hashKernel = Utils::HashKernel(data, hash.get()); // Generate hash kernels
-            std::size_t lower = hashKernel.LowerBaseHash;
-            std::size_t upper = hashKernel.UpperBaseHash;
+            auto hashKernel = Utils::HashKernel(data); // Generate hash kernels
+            uint32_t lower = hashKernel.LowerBaseHash;
+            uint32_t upper = hashKernel.UpperBaseHash;
             bool member = true;
-            std::vector<std::size_t> indices(k); // Store hash function indices
+            std::vector<uint32_t> indices(k); // Store hash function indices
 
             // Calculate hash function indices and check if all are set in the bucket array
-            for (std::size_t i = 0; i < k; ++i) {
-                indices[i] = (lower + upper * i) % m;
-                if (buckets[indices[i]] == 0) {
+            for (uint32_t i = 0; i < k; ++i) {
+                indices[i] = uint32_t((lower + upper * i) % m);
+                if (buckets.Get(indices[i]) == 0) {
                     member = false;
                 }
             }
@@ -139,7 +140,7 @@ namespace BloomFilterModels {
             // If the data is probably in the filter, decrement the bucket values at the calculated indices
             if (member) {
                 for (auto index : indices) {
-                    buckets[index]--;
+                    buckets.Increment(index, -1);
                 }
                 count--;
             }
@@ -165,17 +166,22 @@ namespace BloomFilterModels {
         /// @param p 
         /// @param s 
         /// @param data 
-        CountingScalableBloomFilter(double fpRate, double r, uint32_t p = Defaults::MAX_COUNT_NUMBER, uint32_t s = Defaults::SCALABLE_GROWTH, const std::vector<std::vector<uint8_t>>& data = {}) :
+        CountingScalableBloomFilter(double fpRate, 
+                                    double r, 
+                                    uint32_t p  = Defaults::MAX_COUNT_NUMBER,
+                                    uint32_t s  = Defaults::SCALABLE_GROWTH,
+                                    const std::vector<std::vector<uint8_t>>& data = {}) :
             r(r), fp(fpRate), p(p), s(s), syncDate(std::time(nullptr))
         {
             AddFilter(data);
         }
 
-        CountingScalableBloomFilter(const CreateBloomFilterModel& model) :
-            r(model.R), fp(model.FP), p(model.P), syncDate(model.SynceDate)
-        {
-            AddFilter(model.FilterModels);
-        }
+        //@ unsupported
+        // CountingScalableBloomFilter(const CreateBloomFilterModel& model) :
+        //     r(model.R), fp(model.FP), p(model.P), syncDate(model.SynceDate)
+        // {
+        //     AddFilter(model.FilterModels);
+        // }
 
         // Returns the current filter capacity.
         uint32_t Capacity() const {
@@ -187,7 +193,7 @@ namespace BloomFilterModels {
         }
 
         // Returns the number of hash functions used in each filter.
-        std::size_t K() const {
+        uint32_t K() const {
             return filters.empty() ? 0 : filters.front().K(); // Return the K of the first filter
         }
 
@@ -245,12 +251,13 @@ namespace BloomFilterModels {
             return false;
         }
 
+        //@ unsupported
         // Sets the hashing function used in the filter.
-        void SetHash(HashAlgorithm* h) {
-            for (auto& filter : filters) {
-                filter.SetHash(h);
-            }
-        }
+        // void SetHash(HashAlgorithm* h) {
+        //     for (auto& filter : filters) {
+        //         filter.SetHash(h);
+        //     }
+        // }
 
         // Resets the filter to its original state.
         // Returns a reference to the filter for chaining.
@@ -265,12 +272,12 @@ namespace BloomFilterModels {
             // Calculate false-positive rate and capacity for the new filter
             double fpRate = fp * std::pow(r, filters.size());
             uint32_t capacity = p * std::pow(s, filters.size());
-            CountingBloomFilter newFilter(capacity, 4, fpRate, {}); // Create a new CountingBloomFilter
+            CountingBloomFilter newFilter(capacity, 4, fpRate); // Create a new CountingBloomFilter
 
             // Set the hash algorithm for the new filter if it's not the first filter
-            if (!filters.empty()) {
-                newFilter.SetHash(filters.front().hash.get()); 
-            }
+            // if (!filters.empty()) {
+            //     newFilter.SetHash(filters.front().hash.get()); 
+            // }
 
             // Add data to the new filter if provided
             if (!data.empty()) {
