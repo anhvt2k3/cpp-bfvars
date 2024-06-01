@@ -5,9 +5,9 @@
 #include <cstdint>
 #include <ctime>
 
-#include "Defaults.h"
 #include "Buckets.h"
-#include "Utils.h"
+#include "../utils/Defaults.h"
+#include "../utils/Utils.h"
 
 using namespace BloomFilterApp;
 namespace BloomFilterModels {
@@ -159,7 +159,7 @@ namespace BloomFilterModels {
 
     // CountingScalableBloomFilter structure and methods
     class CountingScalableBloomFilter {
-        std::list<CountingBloomFilter> filters; // List of CountingBloomFilter objects
+        std::vector<CountingBloomFilter> filters; // List of CountingBloomFilter objects
         double r; // Tightening ratio
         double fp; // Target false-positive rate
         uint32_t p; // Maximum item count for each CountingBloomFilter
@@ -196,6 +196,26 @@ namespace BloomFilterModels {
             r(r), fp(fpRate), p(p), s(s), syncDate(std::time(nullptr))
         {
             AddFilter(data);
+        }
+
+        string getConfigure() {
+            string res = "CSBF Scope" + '\n';
+            res += "Tightening-ratio: " + to_string(r) + "\n";
+            res += "False positive rate: " + to_string(fp) + "\n";
+            res += "Current max capacity: " + to_string(p) + "\n";
+            res += "Current filter capacity: " + to_string(Capacity()) + "\n";
+            res += "Scale growth: " + to_string(s) + "\n";
+            res += "CBF Scope" + '\n';
+            res += "Number of filters: " + to_string(filters.size()) + "\n";
+            for (int i=0; i<filters.size(); i++) {
+                auto filter = filters[i];
+                res += "_ _ _ Filter " + to_string(i) + " _ _ _\n";
+                res += "Filter max capacity: " + to_string(filter.Max_capacity()) + "\n";
+                res += "Filter capacity: " + to_string(filter.Capacity()) + "\n";
+                res += "Filter count: " + to_string(filter.Count()) + "\n";
+                res += "Filter K: " + to_string(filter.K()) + "\n";
+            }
+            return res;
         }
 
 

@@ -5,11 +5,11 @@
 #include <string>
 #include <chrono>
 
-#include "CountingScalableBloomFilter.h"
-
+#include "csbf/CountingScalableBloomFilter.h"
 using namespace BloomFilterModels;
 using namespace std;
 
+string DATA_PATH = "./data/MOCK_DATA.csv";
 vector<string> readCSV(const string& filename)
 {
     vector<string> data;
@@ -43,18 +43,22 @@ class Tester {
         Tester(CountingScalableBloomFilter cbf) {
             this->cbf = cbf;
         }
-        //TODO measure csbf's size
-        //todo gives out optimal m and k
         //todo try other set of m,k,s,fpRate
-        //todo design a generic output and logs
+        //todo measure FP rate of csbf
         //TODO generate 1M data (unique by line)
         //todo make Random set, Disjoint Set and Same set 
 
         //todo => make the table
 
+        //todo gives out The csbf instance configures
+        string getConfig() {
+            return cbf.getConfigure();
+        }
+
+        //TODO measure csbf's size
         // Return capacity of csbf
-        uint32_t Capacity() {
-            return cbf.Capacity();
+        string Capacity() {
+            return to_string(cbf.Capacity());
         }
 
         // Return number of hash functions
@@ -113,7 +117,7 @@ int main()
 {
     CountingScalableBloomFilter cbf;
 
-    vector<string> csvData = readCSV("MOCK_DATA.csv");
+    vector<string> csvData = readCSV(DATA_PATH);
     
 
     return 0;
