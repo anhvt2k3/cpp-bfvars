@@ -12,6 +12,7 @@ class Buckets {
   uint8_t Max;
   // Number of buckets
   uint32_t count;
+  Buckets() {}
   
   // Constructor
   Buckets(uint32_t count, 
@@ -29,7 +30,9 @@ class Buckets {
 
   uint8_t *recreateExistData(const uint8_t *existData, size_t sizeData)
   {
-    return copy(existData, existData + sizeData, new std::vector<uint8_t>(sizeData))->data();
+      uint8_t* newData = new uint8_t[sizeData];
+      memcpy(newData, existData, sizeData);
+      return newData;
   }
 
   // Get the maximum value a bucket can hold

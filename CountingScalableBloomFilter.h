@@ -21,8 +21,8 @@ namespace BloomFilterModels {
         uint32_t maxCapacity; // Maximum capacity of the filter
         double fpRate; // Target false-positive rate
         // std::unique_ptr<HashAlgorithm> hash; // Hash algorithm object
-
     public:
+        CountingBloomFilter() {}
         CountingBloomFilter(uint32_t n, 
                             uint8_t b, 
                             double fpRate, 
@@ -36,6 +36,12 @@ namespace BloomFilterModels {
             fpRate     (fpRate)                                                                      // Set false-positive rate
         {
         }
+
+        // Returns the maximum capacity of the filter
+        uint32_t Max_capacity() const {
+            return maxCapacity;
+        }
+
         // Returns the filter capacity
         uint32_t Capacity() const {
             return m;
@@ -152,7 +158,7 @@ namespace BloomFilterModels {
     }; // end of CountingBloomFilter
 
     // CountingScalableBloomFilter structure and methods
-    struct CountingScalableBloomFilter {
+    class CountingScalableBloomFilter {
         std::list<CountingBloomFilter> filters; // List of CountingBloomFilter objects
         double r; // Tightening ratio
         double fp; // Target false-positive rate
@@ -160,20 +166,37 @@ namespace BloomFilterModels {
         uint32_t s; // Scalable growth factor
         std::time_t syncDate; // Synchronization date
 
-        /// @brief 
-        /// @param fpRate 
-        /// @param r 
-        /// @param p 
-        /// @param s 
-        /// @param data 
-        CountingScalableBloomFilter(double fpRate, 
-                                    double r, 
-                                    uint32_t p  = Defaults::MAX_COUNT_NUMBER,
-                                    uint32_t s  = Defaults::SCALABLE_GROWTH,
+    public:
+        CountingScalableBloomFilter(double fpRate   = Defaults::FALSE_POSITIVE_RATE,
+                                    double r        = Defaults::FILL_RATIO,
+                                    uint32_t p      = Defaults::MAX_COUNT_NUMBER,
+                                    uint32_t s      = Defaults::SCALABLE_GROWTH,
                                     const std::vector<std::vector<uint8_t>>& data = {}) :
             r(r), fp(fpRate), p(p), s(s), syncDate(std::time(nullptr))
         {
             AddFilter(data);
+        }
+
+        // Adds a new filter to the list with restricted false-positive rate.
+        void AddFilter(const std::vector<std::vector<uint8_t>>& data = {}) {
+            // Calculate false-positive rate and capacity for the new filter
+            double fpRate = fp * std::pow(r, filters.size());
+            uint32_t capacity = p * std::pow(s, filters.size());
+            CountingBloomFilter newFilter(capacity, 4, fpRate); // Create a new CountingBloomFilter
+
+            // Set the hash algorithm for the new filter if it's not the first filter
+            // if (!filters.empty()) {
+            //     newFilter.SetHash(filters.front().hash.get()); 
+            // }
+
+            // Add data to the new filter if provided
+            if (!data.empty()) {
+                for (const auto& item : data) {
+                    newFilter.Add(item);
+                }
+            }
+
+            filters.push_back(newFilter); // Add the new filter to the list
         }
 
         //@ unsupported
@@ -212,22 +235,23 @@ namespace BloomFilterModels {
         // Adds the data to the filter.
         // Returns a reference to the filter for chaining.
         CountingScalableBloomFilter& Add(const std::vector<uint8_t>& data) {
-            if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter.Count() == filter.maxCapacity; })) {
+            if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter.Count() == filter.Max_capacity(); })) {
                 AddFilter(); // Add a new filter if all filters are full
             }
             filters.back().Add(data); // Add data to the last filter
             return *this;
         }
 
+        
         // Removes the data from the filter.
         // Returns a reference to the filter for chaining.
-        CountingScalableBloomFilter& Remove(const std::vector<uint8_t>& data) {
-            if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter.Count() == filter.maxCapacity; })) {
-                AddFilter(); // Add a new filter if all filters are full
-            }
-            filters.back().Add(data); // Add data to the last filter
-            return *this;
-        }
+        // CountingScalableBloomFilter& Remove(const std::vector<uint8_t>& data) {
+        //     if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter.Count() == filter.Max_capacity(); })) {
+        //         AddFilter(); // Add a new filter if all filters are full
+        //     }
+        //     filters.back().Add(data); // Add data to the last filter
+        //     return *this;
+        // }
 
         // Tests for membership of the data and adds it to the filter if it doesn't exist.
         // Returns true if the data was probably in the filter, false otherwise.
@@ -267,33 +291,13 @@ namespace BloomFilterModels {
             return *this;
         }
 
-        // Adds a new filter to the list with restricted false-positive rate.
-        void AddFilter(const std::vector<std::vector<uint8_t>>& data = {}) {
-            // Calculate false-positive rate and capacity for the new filter
-            double fpRate = fp * std::pow(r, filters.size());
-            uint32_t capacity = p * std::pow(s, filters.size());
-            CountingBloomFilter newFilter(capacity, 4, fpRate); // Create a new CountingBloomFilter
-
-            // Set the hash algorithm for the new filter if it's not the first filter
-            // if (!filters.empty()) {
-            //     newFilter.SetHash(filters.front().hash.get()); 
-            // }
-
-            // Add data to the new filter if provided
-            if (!data.empty()) {
-                for (const auto& item : data) {
-                    newFilter.Add(item);
-                }
-            }
-
-            filters.push_back(newFilter); // Add the new filter to the list
-        }
     };
 
+    //@ unsupported
     // Creates a new Scalable Bloom Filter with the specified target false-positive rate and an optimal tightening ratio.
     // Returns a pointer to the created filter.
-    CountingScalableBloomFilter* NewDefaultScalableBloomFilter(double fpRate) {
-        return new CountingScalableBloomFilter(fpRate, 0.8, 10000); // Create a filter with default parameters
-    }
+    // CountingScalableBloomFilter* NewDefaultScalableBloomFilter(double fpRate) {
+    //     return new CountingScalableBloomFilter(fpRate, 0.8, 10000); // Create a filter with default parameters
+    // }
 
 } // namespace BloomFilterModels

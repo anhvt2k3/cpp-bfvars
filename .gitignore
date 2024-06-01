@@ -9,6 +9,7 @@ bin/
 # Ignore object files
 *.o
 *.obj
+*.csv
 
 # Ignore generated files
 Makefile
