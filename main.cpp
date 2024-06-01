@@ -9,7 +9,11 @@
 using namespace BloomFilterModels;
 using namespace std;
 
-string DATA_PATH = "./data/MOCK_DATA.csv";
+string setall = "/data/dataset0.csv"; //# 0 => all possible values
+string set300 = "/data/dataset1.csv"; //# 1 => values: 0 -> 300k
+string set700 = "/data/dataset2.csv"; //# 2 => values: 300k001 -> 1M
+string set500 = "/data/dataset3.csv"; //# 3 => values: 0 -> 500k
+string set501 = "/data/dataset4.csv"; //# 4 => values: 500k001 -> 1M
 vector<string> readCSV(const string& filename)
 {
     vector<string> data;
@@ -116,8 +120,9 @@ class Tester {
 int main()
 {
     CountingScalableBloomFilter cbf;
-
-    vector<string> csvData = readCSV(DATA_PATH);
+    Tester tester(cbf);
+    auto data = readCSV(setall);
+    cout << "Elapsed time: " << tester.testAdding(data).count() << "s\n";
     
 
     return 0;

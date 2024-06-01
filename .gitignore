@@ -1,4 +1,5 @@
 # Ignore build artifacts
+data/
 build/
 bin/
 *.exe

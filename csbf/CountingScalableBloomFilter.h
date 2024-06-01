@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <ctime>
+#include <string>
 
 #include "Buckets.h"
 #include "../utils/Defaults.h"
