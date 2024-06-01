@@ -166,17 +166,6 @@ namespace BloomFilterModels {
         uint32_t s; // Scalable growth factor
         std::time_t syncDate; // Synchronization date
 
-    public:
-        CountingScalableBloomFilter(double fpRate   = Defaults::FALSE_POSITIVE_RATE,
-                                    double r        = Defaults::FILL_RATIO,
-                                    uint32_t p      = Defaults::MAX_COUNT_NUMBER,
-                                    uint32_t s      = Defaults::SCALABLE_GROWTH,
-                                    const std::vector<std::vector<uint8_t>>& data = {}) :
-            r(r), fp(fpRate), p(p), s(s), syncDate(std::time(nullptr))
-        {
-            AddFilter(data);
-        }
-
         // Adds a new filter to the list with restricted false-positive rate.
         void AddFilter(const std::vector<std::vector<uint8_t>>& data = {}) {
             // Calculate false-positive rate and capacity for the new filter
@@ -198,6 +187,17 @@ namespace BloomFilterModels {
 
             filters.push_back(newFilter); // Add the new filter to the list
         }
+    public:
+        CountingScalableBloomFilter(double fpRate   = Defaults::FALSE_POSITIVE_RATE,
+                                    double r        = Defaults::FILL_RATIO,
+                                    uint32_t p      = Defaults::MAX_COUNT_NUMBER,
+                                    uint32_t s      = Defaults::SCALABLE_GROWTH,
+                                    const std::vector<std::vector<uint8_t>>& data = {}) :
+            r(r), fp(fpRate), p(p), s(s), syncDate(std::time(nullptr))
+        {
+            AddFilter(data);
+        }
+
 
         //@ unsupported
         // CountingScalableBloomFilter(const CreateBloomFilterModel& model) :
