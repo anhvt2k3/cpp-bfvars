@@ -10,6 +10,7 @@
 #include "../utils/Defaults.h"
 #include "../utils/Utils.h"
 
+using namespace std;
 using namespace BloomFilterApp;
 namespace BloomFilterModels {
 
@@ -26,10 +27,9 @@ namespace BloomFilterModels {
         CountingBloomFilter() {}
         CountingBloomFilter(uint32_t n, 
                             uint8_t b, 
-                            double fpRate, 
-                            const    std::vector<uint8_t>& data = {},
+                            double fpRate,
                             uint32_t countExist                 = 0) :
-            buckets    (Buckets(Utils::OptimalMCounting(n, fpRate), b, data.data(), data.size())),   // Initialize buckets 
+            buckets    (Buckets(Utils::OptimalMCounting(n, fpRate), b)),   // Initialize buckets 
             m          (Utils::OptimalMCounting(n, fpRate)),                                         // Calculate filter size
             k          (Utils::OptimalKCounting(fpRate)),                                            // Calculate number of hash functions
             count      (countExist),                                                                 // Initialize count
@@ -85,10 +85,11 @@ namespace BloomFilterModels {
 
             // Set the K bits in the bucket array
             for (uint32_t i = 0; i < k; ++i) {
+                cout << "cbf-Adding: " << uint32_t((lower + upper * i) % m) << endl;
                 buckets.Increment(uint32_t((lower + upper * i) % m), 1);
             }
 
-            count++;
+            this->count++;
             return *this;
         }
 
@@ -165,7 +166,7 @@ namespace BloomFilterModels {
         double fp; // Target false-positive rate
         uint32_t p; // Maximum item count for each CountingBloomFilter
         uint32_t s; // Scalable growth factor
-        std::time_t syncDate; // Synchronization date
+        // std::time_t syncDate; // Synchronization date
 
         // Adds a new filter to the list with restricted false-positive rate.
         void AddFilter(const std::vector<std::vector<uint8_t>>& data = {}) {
@@ -180,41 +181,41 @@ namespace BloomFilterModels {
             // }
 
             // Add data to the new filter if provided
-            if (!data.empty()) {
-                for (const auto& item : data) {
-                    newFilter.Add(item);
-                }
-            }
+            // if (!data.empty()) {
+            //     for (const auto& item : data) {
+            //         newFilter.Add(item);
+            //     }
+            // }
 
             filters.push_back(newFilter); // Add the new filter to the list
         }
     public:
-        CountingScalableBloomFilter(double fpRate   = Defaults::FALSE_POSITIVE_RATE,
+        CountingScalableBloomFilter(uint32_t p      = Defaults::MAX_COUNT_NUMBER,
+                                    double fpRate   = Defaults::FALSE_POSITIVE_RATE,
                                     double r        = Defaults::FILL_RATIO,
-                                    uint32_t p      = Defaults::MAX_COUNT_NUMBER,
                                     uint32_t s      = Defaults::SCALABLE_GROWTH,
                                     const std::vector<std::vector<uint8_t>>& data = {}) :
-            r(r), fp(fpRate), p(p), s(s), syncDate(std::time(nullptr))
+            r(r), fp(fpRate), p(p), s(s)
         {
             AddFilter(data);
         }
 
-        string getConfigure() {
-            string res = "CSBF Scope" + '\n';
-            res += "Tightening-ratio: " + to_string(r) + "\n";
-            res += "False positive rate: " + to_string(fp) + "\n";
-            res += "Current max capacity: " + to_string(p) + "\n";
-            res += "Current filter capacity: " + to_string(Capacity()) + "\n";
-            res += "Scale growth: " + to_string(s) + "\n";
+        std::string getConfigure() {
+            std::string res = "CSBF Scope" + '\n';
+            res += "Tightening-ratio: " + std::__cxx11::to_string(r) + "\n";
+            res += "False positive rate: " + std::__cxx11::to_string(fp) + "\n";
+            res += "Current max capacity: " + std::__cxx11::to_string(p) + "\n";
+            res += "Current filter capacity: " + std::__cxx11::to_string(Capacity()) + "\n";
+            res += "Scale growth: " + std::__cxx11::to_string(s) + "\n";
             res += "CBF Scope" + '\n';
-            res += "Number of filters: " + to_string(filters.size()) + "\n";
+            res += "Number of filters: " + std::__cxx11::to_string(filters.size()) + "\n";
             for (int i=0; i<filters.size(); i++) {
                 auto filter = filters[i];
-                res += "_ _ _ Filter " + to_string(i) + " _ _ _\n";
-                res += "Filter max capacity: " + to_string(filter.Max_capacity()) + "\n";
-                res += "Filter capacity: " + to_string(filter.Capacity()) + "\n";
-                res += "Filter count: " + to_string(filter.Count()) + "\n";
-                res += "Filter K: " + to_string(filter.K()) + "\n";
+                res += "_ _ _ Filter " + std::__cxx11::to_string(i) + " _ _ _\n";
+                res += "Filter max capacity: " + std::__cxx11::to_string(filter.Max_capacity()) + "\n";
+                res += "Filter capacity: " + std::__cxx11::to_string(filter.Capacity()) + "\n";
+                res += "Filter count: " + std::__cxx11::to_string(filter.Count()) + "\n";
+                res += "Filter K: " + std::__cxx11::to_string(filter.K()) + "\n";
             }
             return res;
         }
@@ -256,10 +257,20 @@ namespace BloomFilterModels {
         // Adds the data to the filter.
         // Returns a reference to the filter for chaining.
         CountingScalableBloomFilter& Add(const std::vector<uint8_t>& data) {
+            // try {
+            // }
+            // catch (const std::exception& e) {
+            //     std::cerr << e.what() << '\n';
+            // }
             if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter.Count() == filter.Max_capacity(); })) {
                 AddFilter(); // Add a new filter if all filters are full
             }
+            cout << "csbf-Adding: " << data.data() << endl;
+            cout << filters.back().Capacity() << endl;
+            cout << filters.back().Max_capacity() << endl;
+
             filters.back().Add(data); // Add data to the last filter
+            cout << "csbf-Added: " << data.data() << endl;
             return *this;
         }
 

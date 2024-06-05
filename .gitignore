@@ -21,4 +21,4 @@ CMakeLists.txt.user
 
 # Ignore compiled output
 out/
-log
+.log

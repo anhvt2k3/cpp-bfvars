@@ -1,11 +1,11 @@
 #include <iostream>
-#include <vector>
 #include <stdint.h>
-
+using namespace std;
 class Buckets {
  public:
   // Data buffer to store the buckets
   uint8_t* Data;
+  long long dataSize;
   // Size of each bucket in bits
   uint8_t bucketSize;
   // Maximum value a bucket can hold
@@ -16,13 +16,13 @@ class Buckets {
   
   // Constructor
   Buckets(uint32_t count, 
-          uint8_t bucketSize, 
-          const uint8_t* existData, 
-          size_t sizeData) {  
+          uint8_t bucketSize) {  
     this->count = count;
     // Calculate the size of the data buffer in bytes
-    this->Data = existData == nullptr ? new uint8_t[((count * bucketSize + 7) / 8)]
-                                      : recreateExistData(existData, sizeData);
+    // this->Data = existData == nullptr ? new uint8_t[((count * bucketSize + 7) / 8)] : recreateExistData(existData, sizeData);
+    this->dataSize = ((count * bucketSize + 7) / 8);
+    this->Data = new uint8_t[this->dataSize]{0};
+
     this->bucketSize = bucketSize;
     // Calculate the maximum value for a bucket
     this->Max = (1 << bucketSize) - 1;
@@ -31,7 +31,10 @@ class Buckets {
   uint8_t *recreateExistData(const uint8_t *existData, size_t sizeData)
   {
       uint8_t* newData = new uint8_t[sizeData];
-      memcpy(newData, existData, sizeData);
+      for (size_t i = 0; i < sizeData; i++)
+      {
+          newData[i] = existData[i];
+      }
       return newData;
   }
 
@@ -40,6 +43,7 @@ class Buckets {
 
   // Increment the value of a bucket
   Buckets& Increment(uint32_t bucket, int delta) {
+    cout << "increment: " << bucket << endl;
     int val = (int)(GetBits(bucket * this->bucketSize, this->bucketSize) + delta);
 
     if (val > this->Max) {
@@ -77,7 +81,6 @@ class Buckets {
   uint32_t GetBits(uint32_t offset, int length) const {
     uint32_t byteIndex = offset / 8;
     int byteOffset = (int)(offset % 8);
-
     if ((byteOffset + length) > 8) {
       int rem = 8 - byteOffset;
       return GetBits(offset, rem) |
@@ -85,8 +88,17 @@ class Buckets {
     }
 
     int bitMask = (1 << length) - 1;
-    return (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >>
-                     byteOffset);
+    cout << "bucket-getbits: " << this->dataSize << " "
+                                << byteIndex << " "
+                                << byteOffset << " "
+                                << (this->Data == nullptr) << " "
+                                << static_cast<void*>(this->Data) << " "
+                                << static_cast<int>(this->Data[0]) << " "
+                                << this->Data << " "
+                                << bitMask << endl;
+    auto a = (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset);
+    cout << "byteIndex: " << (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset) << endl;
+    return (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset);
   }
 
   // Set bits in the data buffer at a specific offset and length

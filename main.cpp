@@ -4,16 +4,24 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <iomanip>
 
 #include "csbf/CountingScalableBloomFilter.h"
 using namespace BloomFilterModels;
 using namespace std;
 
-string setall = "/data/dataset0.csv"; //# 0 => all possible values
-string set300 = "/data/dataset1.csv"; //# 1 => values: 0 -> 300k
-string set700 = "/data/dataset2.csv"; //# 2 => values: 300k001 -> 1M
-string set500 = "/data/dataset3.csv"; //# 3 => values: 0 -> 500k
-string set501 = "/data/dataset4.csv"; //# 4 => values: 500k001 -> 1M
+string setall = "./data/dataset0.csv"; //# 0 => all possible values
+string set300 = "./data/dataset1.csv"; //# 1 => values: 0 -> 300k
+string set700 = "./data/dataset2.csv"; //# 2 => values: 300k001 -> 1M
+string set500 = "./data/dataset3.csv"; //# 3 => values: 0 -> 500k
+string set501 = "./data/dataset4.csv"; //# 4 => values: 500k001 -> 1M
+
+void printVector(vector<string> data) {
+    for (auto d : data) {
+        cout << d << endl;
+    }
+}
+
 vector<string> readCSV(const string& filename)
 {
     vector<string> data;
@@ -36,16 +44,23 @@ vector<string> readCSV(const string& filename)
 
 class Tester {
     private:
-        CountingScalableBloomFilter cbf;
+        CountingScalableBloomFilter& cbf;
         // chrono::duration<double> elapsed;
 
         vector<uint8_t> getAsciiBytes(const string& str) {
             vector<uint8_t> bytes(str.begin(), str.end());
+            // cout << "String: " << str << endl;
+            // cout << "Bytes:" << bytes.size() << endl;
+            // for (uint8_t byte : bytes) {
+            //     cout << static_cast<int>(byte) << ' ';
+            // }
+            // cout << endl;
             return bytes;
         }
     public:
-        Tester(CountingScalableBloomFilter cbf) {
-            this->cbf = cbf;
+        Tester(CountingScalableBloomFilter& cbf) : cbf(cbf) {
+            // this->cbf = cbf;
+            cout << "Tester is created" << endl;
         }
         //todo try other set of m,k,s,fpRate
         //todo measure FP rate of csbf
@@ -80,6 +95,7 @@ class Tester {
                 cbf.Add(dataBytes);
                 auto end = chrono::high_resolution_clock::now();
                 total_elapsed += end - start;
+                cout << "Adding: " << dataBytes.data() << endl;
             }
             return total_elapsed;
         }
@@ -119,11 +135,13 @@ class Tester {
 
 int main()
 {
-    CountingScalableBloomFilter cbf;
+    auto data = readCSV(set300);
+    CountingScalableBloomFilter cbf(data.size());
     Tester tester(cbf);
-    auto data = readCSV(setall);
-    cout << "Elapsed time: " << tester.testAdding(data).count() << "s\n";
-    
+    cout << "Debug!" << endl;
+    auto elapsed = tester.testAdding(data).count();
+    cout << "Elapsed time: " << elapsed << "s" << endl;
+    cout << tester.getConfig() << endl;
 
     return 0;
 }
