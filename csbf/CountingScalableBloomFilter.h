@@ -175,19 +175,8 @@ namespace BloomFilterModels {
             uint32_t capacity = p * std::pow(s, filters.size());
             CountingBloomFilter newFilter(capacity, 4, fpRate); // Create a new CountingBloomFilter
 
-            // Set the hash algorithm for the new filter if it's not the first filter
-            // if (!filters.empty()) {
-            //     newFilter.SetHash(filters.front().hash.get()); 
-            // }
-
-            // Add data to the new filter if provided
-            // if (!data.empty()) {
-            //     for (const auto& item : data) {
-            //         newFilter.Add(item);
-            //     }
-            // }
-
             filters.push_back(newFilter); // Add the new filter to the list
+            cout << "Adding filter" << endl;
         }
     public:
         CountingScalableBloomFilter(uint32_t p      = Defaults::MAX_COUNT_NUMBER,
@@ -197,7 +186,9 @@ namespace BloomFilterModels {
                                     const std::vector<std::vector<uint8_t>>& data = {}) :
             r(r), fp(fpRate), p(p), s(s)
         {
+            cout << "CSBF is being created" << endl;
             AddFilter(data);
+            cout << "CSBF is created" << endl;
         }
 
         std::string getConfigure() {
@@ -257,11 +248,6 @@ namespace BloomFilterModels {
         // Adds the data to the filter.
         // Returns a reference to the filter for chaining.
         CountingScalableBloomFilter& Add(const std::vector<uint8_t>& data) {
-            // try {
-            // }
-            // catch (const std::exception& e) {
-            //     std::cerr << e.what() << '\n';
-            // }
             if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter.Count() == filter.Max_capacity(); })) {
                 AddFilter(); // Add a new filter if all filters are full
             }

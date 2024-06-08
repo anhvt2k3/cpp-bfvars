@@ -1,11 +1,42 @@
 #include <iostream>
-#include <stdint.h>
+#include <cstdlib>
 using namespace std;
 class Buckets {
+  class ByteArray {
+    public:
+    uint8_t* data;
+    long long size;
+    ByteArray() : data(nullptr), size(0) {}
+    ByteArray(long long n) : size(n) {
+      this->data = (uint8_t*)calloc(n, sizeof(uint8_t));
+      if (this->data == nullptr) {
+          throw std::bad_alloc();  // Handle allocation failure
+      }
+    }
+    uint8_t& operator[](long long i) {
+        if (i >= 0 && i < size) {
+            return this->data[i];
+        } else {
+            throw std::out_of_range("Index out of bounds");
+        }
+    }
+    const uint8_t& operator[](long long i) const {
+        if (i >= 0 && i < size) {
+            return this->data[i];
+        } else {
+            throw std::out_of_range("Index out of bounds");
+        }
+    }
+    int show(long long i) {
+      return static_cast<int>(this->data[i]);
+    }
+    ~ByteArray() {
+      free(this->data);
+    }
+  };
  public:
   // Data buffer to store the buckets
-  uint8_t* Data;
-  long long dataSize;
+  ByteArray Data;
   // Size of each bucket in bits
   uint8_t bucketSize;
   // Maximum value a bucket can hold
@@ -20,8 +51,12 @@ class Buckets {
     this->count = count;
     // Calculate the size of the data buffer in bytes
     // this->Data = existData == nullptr ? new uint8_t[((count * bucketSize + 7) / 8)] : recreateExistData(existData, sizeData);
-    this->dataSize = ((count * bucketSize + 7) / 8);
-    this->Data = new uint8_t[this->dataSize]{0};
+    this->Data = ByteArray(((count * bucketSize + 7) / 8));
+    // auto a = new uint8_t[1000000];
+    // cout << a << endl;
+    // cout << "is Data created1: " << (this->Data == nullptr) << endl;
+    // cout << "is Data created2: " << static_cast<void*>(this->Data) << endl;
+    // cout << "is Data created3: " << this->Data[0] << endl;
 
     this->bucketSize = bucketSize;
     // Calculate the maximum value for a bucket
@@ -73,7 +108,7 @@ class Buckets {
 
   // Reset the buckets to their initial state
   Buckets& Reset() {
-    this->Data = new uint8_t[((this->count * this->bucketSize + 7) / 8)];
+    this->Data = ByteArray((this->count * this->bucketSize + 7) / 8);
     return *this;
   }
 
@@ -88,14 +123,15 @@ class Buckets {
     }
 
     int bitMask = (1 << length) - 1;
-    cout << "bucket-getbits: " << this->dataSize << " "
-                                << byteIndex << " "
-                                << byteOffset << " "
-                                << (this->Data == nullptr) << " "
-                                << static_cast<void*>(this->Data) << " "
-                                << static_cast<int>(this->Data[0]) << " "
-                                << this->Data << " "
-                                << bitMask << endl;
+
+    cout << "bucket-getbits: " << this->Data.size << " ";
+                              cout << byteIndex << " ";
+                              cout << byteOffset << " ";
+                              cout << "checkpoint 1" << endl;
+                              cout << (this->Data[0])+1 << " "; //# stuck here
+                              cout << "checkpoint 2" << endl;
+                              cout << bitMask << endl;
+
     auto a = (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset);
     cout << "byteIndex: " << (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset) << endl;
     return (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset);
@@ -121,5 +157,5 @@ class Buckets {
   }
 
   // Destructor to free the allocated memory
-  ~Buckets() { delete[] Data; }
+  ~Buckets() {  }
 };

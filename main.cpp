@@ -136,12 +136,13 @@ class Tester {
 int main()
 {
     auto data = readCSV(set300);
-    CountingScalableBloomFilter cbf(data.size());
-    Tester tester(cbf);
+    CountingScalableBloomFilter csbf(data.size());
     cout << "Debug!" << endl;
+    Tester tester(csbf);
     auto elapsed = tester.testAdding(data).count();
     cout << "Elapsed time: " << elapsed << "s" << endl;
     cout << tester.getConfig() << endl;
 
+    cout << "Function ran" <<endl;
     return 0;
 }
