@@ -2,41 +2,9 @@
 #include <cstdlib>
 using namespace std;
 class Buckets {
-  class ByteArray {
-    public:
-    uint8_t* data;
-    long long size;
-    ByteArray() : data(nullptr), size(0) {}
-    ByteArray(long long n) : size(n) {
-      this->data = (uint8_t*)calloc(n, sizeof(uint8_t));
-      if (this->data == nullptr) {
-          throw std::bad_alloc();  // Handle allocation failure
-      }
-    }
-    uint8_t& operator[](long long i) {
-        if (i >= 0 && i < size) {
-            return this->data[i];
-        } else {
-            throw std::out_of_range("Index out of bounds");
-        }
-    }
-    const uint8_t& operator[](long long i) const {
-        if (i >= 0 && i < size) {
-            return this->data[i];
-        } else {
-            throw std::out_of_range("Index out of bounds");
-        }
-    }
-    int show(long long i) {
-      return static_cast<int>(this->data[i]);
-    }
-    ~ByteArray() {
-      free(this->data);
-    }
-  };
  public:
   // Data buffer to store the buckets
-  ByteArray Data;
+  uint8_t* Data;
   // Size of each bucket in bits
   uint8_t bucketSize;
   // Maximum value a bucket can hold
@@ -50,35 +18,36 @@ class Buckets {
           uint8_t bucketSize) {  
     this->count = count;
     // Calculate the size of the data buffer in bytes
-    // this->Data = existData == nullptr ? new uint8_t[((count * bucketSize + 7) / 8)] : recreateExistData(existData, sizeData);
-    this->Data = ByteArray(((count * bucketSize + 7) / 8));
-    // auto a = new uint8_t[1000000];
-    // cout << a << endl;
-    // cout << "is Data created1: " << (this->Data == nullptr) << endl;
-    // cout << "is Data created2: " << static_cast<void*>(this->Data) << endl;
-    // cout << "is Data created3: " << this->Data[0] << endl;
+    int dataSize = ((bucketSize + 7) / 8);
+    
+    this->Data = (uint8_t*)calloc(count, dataSize);
 
     this->bucketSize = bucketSize;
     // Calculate the maximum value for a bucket
     this->Max = (1 << bucketSize) - 1;
+    // cout << "still alive" << endl;
+    this->recheck_data();
   }
 
-  uint8_t *recreateExistData(const uint8_t *existData, size_t sizeData)
-  {
-      uint8_t* newData = new uint8_t[sizeData];
-      for (size_t i = 0; i < sizeData; i++)
-      {
-          newData[i] = existData[i];
+  void recheck_data() const {
+    try {
+      for (uint32_t i = 0; i < count; ++i) {
+
+          if (this->Data[i] != 0) 
+            throw std::invalid_argument("Cell is not zero");
       }
-      return newData;
+    } catch (const std::invalid_argument& e) {
+      cout << "Invalid argument: " << e.what() << endl;
+      return;
+    }
+    cout << "Cells are correctly initialized!" << endl;
   }
-
   // Get the maximum value a bucket can hold
   uint8_t MaxBucketValue() { return this->Max; }
 
   // Increment the value of a bucket
   Buckets& Increment(uint32_t bucket, int delta) {
-    cout << "increment: " << bucket << endl;
+    // cout << "increment: " << bucket << endl;
     int val = (int)(GetBits(bucket * this->bucketSize, this->bucketSize) + delta);
 
     if (val > this->Max) {
@@ -108,7 +77,8 @@ class Buckets {
 
   // Reset the buckets to their initial state
   Buckets& Reset() {
-    this->Data = ByteArray((this->count * this->bucketSize + 7) / 8);
+    int dataSize = ((this->bucketSize + 7) / 8);
+    this->Data = (uint8_t*)calloc(count, dataSize);
     return *this;
   }
 
@@ -124,16 +94,7 @@ class Buckets {
 
     int bitMask = (1 << length) - 1;
 
-    cout << "bucket-getbits: " << this->Data.size << " ";
-                              cout << byteIndex << " ";
-                              cout << byteOffset << " ";
-                              cout << "checkpoint 1" << endl;
-                              cout << (this->Data[0])+1 << " "; //# stuck here
-                              cout << "checkpoint 2" << endl;
-                              cout << bitMask << endl;
-
     auto a = (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset);
-    cout << "byteIndex: " << (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset) << endl;
     return (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset);
   }
 

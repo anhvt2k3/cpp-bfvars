@@ -22,6 +22,15 @@ void printVector(vector<string> data) {
     }
 }
 
+template <typename T>
+std::vector<T> mergeVectors(const std::vector<T>& vector1, const std::vector<T>& vector2) {
+    std::vector<T> mergedVector;
+    mergedVector.reserve(vector1.size() + vector2.size());
+    mergedVector.insert(mergedVector.end(), vector1.begin(), vector1.end());
+    mergedVector.insert(mergedVector.end(), vector2.begin(), vector2.end());
+    return mergedVector;
+}
+
 vector<string> readCSV(const string& filename)
 {
     vector<string> data;
@@ -43,9 +52,12 @@ vector<string> readCSV(const string& filename)
 }
 
 class Tester {
-    private:
-        CountingScalableBloomFilter& cbf;
+    public:
+        CountingScalableBloomFilter& csbf;
         // chrono::duration<double> elapsed;
+        vector<string> keys;
+
+        vector<string> nonkeys;
 
         vector<uint8_t> getAsciiBytes(const string& str) {
             vector<uint8_t> bytes(str.begin(), str.end());
@@ -57,11 +69,24 @@ class Tester {
             // cout << endl;
             return bytes;
         }
-    public:
-        Tester(CountingScalableBloomFilter& cbf) : cbf(cbf) {
-            // this->cbf = cbf;
+
+        Tester(CountingScalableBloomFilter& csbf) : csbf(csbf) {
+            // this->csbf = csbf;
             cout << "Tester is created" << endl;
         }
+
+        void setEntry(vector<string> keys, vector<string> nonkeys) {
+            this->keys = keys;
+            this->nonkeys = nonkeys;
+        }
+
+        void getEntrySize() {
+            cout << "Keys: " << keys.size() << endl;
+            cout << "NonKeys: " << nonkeys.size() << endl;
+        }
+
+        //todo measure csbf's size
+
         //todo try other set of m,k,s,fpRate
         //todo measure FP rate of csbf
         //TODO generate 1M data (unique by line)
@@ -71,31 +96,33 @@ class Tester {
 
         //todo gives out The csbf instance configures
         string getConfig() {
-            return cbf.getConfigure();
+            return csbf.getConfigure();
         }
 
         //TODO measure csbf's size
         // Return capacity of csbf
         string Capacity() {
-            return to_string(cbf.Capacity());
+            return to_string(csbf.Capacity());
         }
 
         // Return number of hash functions
         uint32_t HashFunctionCount() {
-            return cbf.K();
+            return csbf.K();
         }
 
         // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
         chrono::duration<double> testAdding(vector<string> dataArray) {
             chrono::duration<double> total_elapsed;
-            cout << "Testing Add function of bloom" << endl;
+            // cout << endl;
+            cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
+            // cout << endl;
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
                 auto start = chrono::high_resolution_clock::now();
-                cbf.Add(dataBytes);
+                csbf.Add(dataBytes);
                 auto end = chrono::high_resolution_clock::now();
                 total_elapsed += end - start;
-                cout << "Adding: " << dataBytes.data() << endl;
+                // cout << "Adding: " << dataBytes.data() << endl;
             }
             return total_elapsed;
         }
@@ -103,11 +130,13 @@ class Tester {
         // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
         chrono::duration<double> testCheck(vector<string> dataArray) {
             chrono::duration<double> total_elapsed;
-            cout << "Testing Test function of bloom" << endl;
+            // cout << endl;
+            cout << "Testing Test function for "<< dataArray.size()<<" entries!" << endl;
+            // cout << endl;
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
                 auto start = chrono::high_resolution_clock::now();
-                cbf.Test(dataBytes);
+                csbf.Test(dataBytes);
                 auto end = chrono::high_resolution_clock::now();
                 total_elapsed += end - start;
             }
@@ -117,11 +146,13 @@ class Tester {
         // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
         chrono::duration<double> testRemove(vector<string> dataArray) {
             chrono::duration<double> total_elapsed;
-            cout << "Testing Remove function of bloom" << endl;
+            // cout << endl;
+            cout << "Testing Removing of "<< dataArray.size()<<" removals!" << endl;
+            // cout << endl;
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
                 auto start = chrono::high_resolution_clock::now();
-                cbf.TestAndRemove(dataBytes);
+                csbf.TestAndRemove(dataBytes);
                 auto end = chrono::high_resolution_clock::now();
                 total_elapsed += end - start;
             }
@@ -135,14 +166,32 @@ class Tester {
 
 int main()
 {
-    auto data = readCSV(set300);
-    CountingScalableBloomFilter csbf(data.size());
+    auto keys = readCSV(set700);
+    auto notkeys = readCSV(set300);
+    CountingScalableBloomFilter csbf(keys.size());
     cout << "Debug!" << endl;
     Tester tester(csbf);
-    auto elapsed = tester.testAdding(data).count();
-    cout << "Elapsed time: " << elapsed << "s" << endl;
+    cout << endl;
+    auto elapsed = tester.testAdding(keys).count();
+    cout << "Adding Elapsed time: " << elapsed << "s" << endl;
+    cout << endl;
+
+//#      Test = 700k keys .. 300k not keys
+    cout << endl;
+    auto adjacent_set1 = mergeVectors(keys, notkeys);
+    elapsed = tester.testCheck(adjacent_set1).count();
+    cout << "Check Elapsed time: " << elapsed << "s" << endl;
+    cout << endl;
+
+//#      Test = 300k not keys .. 700k keys
+    cout << endl;
+    auto adjacent_set2 = mergeVectors(notkeys, keys);
+    elapsed = tester.testCheck(adjacent_set2).count();
+    cout << "Check Elapsed time: " << elapsed << "s" << endl;
+    cout << endl;
+
     cout << tester.getConfig() << endl;
 
-    cout << "Function ran" <<endl;
+    cout << "Everything done running!" <<endl;
     return 0;
 }

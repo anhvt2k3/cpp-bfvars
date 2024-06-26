@@ -1,28 +1,85 @@
 #include <iostream>
-#include <cstdlib>
+#include <vector>
+#include <stdexcept>
+#include <cstdint>
 
-int main()
-{
-    auto a = new uint8_t[1000000];
-    uint8_t* array = (uint8_t*)calloc(2000000, sizeof(uint8_t));
-    if (array == NULL) {
-        // Handle allocation failure
-        return 1;
+class Buckets {
+public:
+    std::vector<uint8_t> data; // Using uint8_t to store bits
+    uint8_t bucketSize; // Size of each bucket in bits
+    uint8_t max; // Maximum value a bucket can hold
+    uint32_t count; // Number of buckets
+
+    Buckets() : bucketSize(0), max(0), count(0) {}
+
+    Buckets(uint32_t count, uint8_t bucketSize)
+        : count(count), bucketSize(bucketSize) {
+        if (bucketSize > 8) {
+            throw std::invalid_argument("Bucket size must be 8 bits or less");
+        }
+        max = (1 << bucketSize) - 1;
+        size_t dataSize = ((count * bucketSize + 7) / 8); // Calculate size in bytes
+        data.resize(dataSize, 0);
     }
 
-    // Print the addresses correctly
-    std::cout << static_cast<void*>(a) << std::endl;
-    std::cout << static_cast<void*>(array) << std::endl;
+    uint8_t get(uint32_t index) const {
+        if (index >= count) {
+            throw std::out_of_range("Index out of bounds");
+        }
+        uint32_t bitIndex = index * bucketSize;
+        uint32_t byteIndex = bitIndex / 8;
+        uint32_t bitOffset = bitIndex % 8;
 
-    // Print the first element correctly
-    std::cout << array[0]+1 << std::endl;
+        uint8_t value = (data[byteIndex] >> bitOffset) & ((1 << bucketSize) - 1);
 
-    // Print the sizes of the pointers
-    std::cout << sizeof(a) << std::endl;
-    std::cout << sizeof(array) << std::endl;
+        if (bitOffset + bucketSize > 8) {
+            value |= (data[byteIndex + 1] & ((1 << (bitOffset + bucketSize - 8)) - 1)) << (8 - bitOffset);
+        }
 
-    free(array);
-    delete[] a;
+        return value;
+    }
+
+    void set(uint32_t index, uint8_t value) {
+        if (index >= count) {
+            throw std::out_of_range("Index out of bounds");
+        }
+        if (value > max) {
+            throw std::invalid_argument("Value exceeds bucket size");
+        }
+
+        uint32_t bitIndex = index * bucketSize;
+        uint32_t byteIndex = bitIndex / 8;
+        uint32_t bitOffset = bitIndex % 8;
+
+        data[byteIndex] &= ~(((1 << bucketSize) - 1) << bitOffset);
+        data[byteIndex] |= (value << bitOffset) & 0xFF;
+
+        if (bitOffset + bucketSize > 8) {
+            data[byteIndex + 1] &= ~((1 << (bitOffset + bucketSize - 8)) - 1);
+            data[byteIndex + 1] |= value >> (8 - bitOffset);
+        }
+    }
+
+    void recheckData() const {
+        for (uint32_t i = 0; i < count; ++i) {
+            uint8_t value = get(i);
+            if (value != 0) {
+                throw std::runtime_error("Data array contains non-zero values");
+            }
+        }
+        std::cout << "Data array is correctly initialized with zero values.\n";
+    }
+};
+
+int main() {
+    try {
+        int count = 300000;
+        Buckets buckets(count, 4);
+        buckets.recheckData();
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
 
     return 0;
 }

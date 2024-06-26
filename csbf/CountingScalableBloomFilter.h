@@ -16,7 +16,7 @@ namespace BloomFilterModels {
 
     // CountingBloomFilter structure and methods
     class CountingBloomFilter {
-        Buckets buckets; // Bucket array
+        Buckets* buckets; // Bucket array
         uint32_t m; // Filter size (number of buckets)
         uint32_t k; // Number of hash functions
         uint32_t count; // Number of items added
@@ -29,12 +29,12 @@ namespace BloomFilterModels {
                             uint8_t b, 
                             double fpRate,
                             uint32_t countExist                 = 0) :
-            buckets    (Buckets(Utils::OptimalMCounting(n, fpRate), b)),   // Initialize buckets 
-            m          (Utils::OptimalMCounting(n, fpRate)),                                         // Calculate filter size
-            k          (Utils::OptimalKCounting(fpRate)),                                            // Calculate number of hash functions
-            count      (countExist),                                                                 // Initialize count
-            maxCapacity(n),                                                                          // Set maximum capacity
-            fpRate     (fpRate)                                                                      // Set false-positive rate
+            buckets    (new Buckets(Utils::OptimalMCounting(n, fpRate), b)),   // Initialize buckets 
+            m          (Utils::OptimalMCounting(n, fpRate)),               // Calculate filter size
+            k          (Utils::OptimalKCounting(fpRate)),                  // Calculate number of hash functions
+            count      (countExist),                                       // Initialize count
+            maxCapacity(n),                                                // Set maximum capacity
+            fpRate     (fpRate)                                            // Set false-positive rate
         {
         }
 
@@ -67,7 +67,7 @@ namespace BloomFilterModels {
 
             // Check if all hash function indices are set in the bucket array
             for (uint32_t i = 0; i < k; ++i) {
-                if (buckets.Get(uint32_t((lower + upper * i) % m)) == 0)
+                if (buckets->Get(uint32_t((lower + upper * i) % m)) == 0)
                 {
                     return false;
                 }
@@ -85,8 +85,8 @@ namespace BloomFilterModels {
 
             // Set the K bits in the bucket array
             for (uint32_t i = 0; i < k; ++i) {
-                cout << "cbf-Adding: " << uint32_t((lower + upper * i) % m) << endl;
-                buckets.Increment(uint32_t((lower + upper * i) % m), 1);
+                // cout << "cbf-Adding: " << uint32_t((lower + upper * i) % m) << endl;
+                buckets->Increment(uint32_t((lower + upper * i) % m), 1);
             }
 
             this->count++;
@@ -96,7 +96,7 @@ namespace BloomFilterModels {
         // Resets the filter to its original state.
         // Returns a reference to the filter for chaining.
         CountingBloomFilter& Reset() {
-            buckets.Reset(); // Clear bucket array
+            buckets->Reset(); // Clear bucket array
             count = 0; // Reset count
             return *this;
         }
@@ -118,10 +118,10 @@ namespace BloomFilterModels {
             // Check if all hash function indices are set in the bucket array and set them if not
             for (uint32_t i = 0; i < k; ++i) {
                 uint32_t index = uint32_t((lower + upper * i) % m);
-                if (buckets.Get(index) == 0) {
+                if (buckets->Get(index) == 0) {
                     member = false;
                 }
-                buckets.Increment(index, 1);
+                buckets->Increment(index, 1);
             }
 
             count++;
@@ -140,7 +140,7 @@ namespace BloomFilterModels {
             // Calculate hash function indices and check if all are set in the bucket array
             for (uint32_t i = 0; i < k; ++i) {
                 indices[i] = uint32_t((lower + upper * i) % m);
-                if (buckets.Get(indices[i]) == 0) {
+                if (buckets->Get(indices[i]) == 0) {
                     member = false;
                 }
             }
@@ -148,7 +148,7 @@ namespace BloomFilterModels {
             // If the data is probably in the filter, decrement the bucket values at the calculated indices
             if (member) {
                 for (auto index : indices) {
-                    buckets.Increment(index, -1);
+                    buckets->Increment(index, -1);
                 }
                 count--;
             }
@@ -169,14 +169,16 @@ namespace BloomFilterModels {
         // std::time_t syncDate; // Synchronization date
 
         // Adds a new filter to the list with restricted false-positive rate.
-        void AddFilter(const std::vector<std::vector<uint8_t>>& data = {}) {
+        int AddFilter(const std::vector<std::vector<uint8_t>>& data = {}) {
             // Calculate false-positive rate and capacity for the new filter
             double fpRate = fp * std::pow(r, filters.size());
             uint32_t capacity = p * std::pow(s, filters.size());
             CountingBloomFilter newFilter(capacity, 4, fpRate); // Create a new CountingBloomFilter
-
             filters.push_back(newFilter); // Add the new filter to the list
-            cout << "Adding filter" << endl;
+
+
+            // cout << "Filter added " << filters.size()  << " "<< newFilter.Capacity() << endl;
+            return 0;
         }
     public:
         CountingScalableBloomFilter(uint32_t p      = Defaults::MAX_COUNT_NUMBER,
@@ -186,19 +188,17 @@ namespace BloomFilterModels {
                                     const std::vector<std::vector<uint8_t>>& data = {}) :
             r(r), fp(fpRate), p(p), s(s)
         {
-            cout << "CSBF is being created" << endl;
-            AddFilter(data);
-            cout << "CSBF is created" << endl;
+            int addf = AddFilter(data);
         }
 
         std::string getConfigure() {
-            std::string res = "CSBF Scope" + '\n';
+            std::string res = "_ _ _ CSBF Scope _ _ _ \n";
             res += "Tightening-ratio: " + std::__cxx11::to_string(r) + "\n";
             res += "False positive rate: " + std::__cxx11::to_string(fp) + "\n";
             res += "Current max capacity: " + std::__cxx11::to_string(p) + "\n";
             res += "Current filter capacity: " + std::__cxx11::to_string(Capacity()) + "\n";
             res += "Scale growth: " + std::__cxx11::to_string(s) + "\n";
-            res += "CBF Scope" + '\n';
+            res += "CBF Scope \n";
             res += "Number of filters: " + std::__cxx11::to_string(filters.size()) + "\n";
             for (int i=0; i<filters.size(); i++) {
                 auto filter = filters[i];
@@ -251,12 +251,12 @@ namespace BloomFilterModels {
             if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter.Count() == filter.Max_capacity(); })) {
                 AddFilter(); // Add a new filter if all filters are full
             }
-            cout << "csbf-Adding: " << data.data() << endl;
-            cout << filters.back().Capacity() << endl;
-            cout << filters.back().Max_capacity() << endl;
+            // cout << "csbf-Adding: " << data.data() << endl;
+            // cout << filters.back().Capacity() << endl;
+            // cout << filters.back().Max_capacity() << endl;
 
             filters.back().Add(data); // Add data to the last filter
-            cout << "csbf-Added: " << data.data() << endl;
+            // cout << "csbf-Added: " << data.data() << endl;
             return *this;
         }
 
