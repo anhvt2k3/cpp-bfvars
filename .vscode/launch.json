@@ -1,11 +1,15 @@
 {
   "version": "0.2.0",
   "configurations": [
+    
     {
       "name": "C/C++ Runner: Debug Session",
       "type": "cppdbg",
       "request": "launch",
-      "args": [],
+      "args": [
+        "-lssl",
+        "-lcrypto"
+      ],
       "stopAtEntry": false,
       "externalConsole": true,
       "cwd": "d:/Desktop/csbf",

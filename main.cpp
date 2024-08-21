@@ -7,14 +7,16 @@
 #include <iomanip>
 
 #include "csbf/CountingScalableBloomFilter.h"
+#include "main.h"
 using namespace BloomFilterModels;
 using namespace std;
 
 string setall = "./data/dataset0.csv"; //# 0 => all possible values
-string set300 = "./data/dataset1.csv"; //# 1 => values: 0 -> 300k
-string set700 = "./data/dataset2.csv"; //# 2 => values: 300k001 -> 1M
-string set500 = "./data/dataset3.csv"; //# 3 => values: 0 -> 500k
-string set501 = "./data/dataset4.csv"; //# 4 => values: 500k001 -> 1M
+string set1 = "./data/dataset1.csv"; //# 1 => values: 0 -> 200k
+string set2 = "./data/dataset2.csv"; //# 2 => values: 200k -> 400k
+string set3 = "./data/dataset3.csv"; //# 3 => values: 400k -> 600k
+string set4 = "./data/dataset4.csv"; //# 4 => values: 600k -> 800k
+string set5 = "./data/dataset5.csv"; //# 5 => values: 800k -> 1M
 
 void printVector(vector<string> data) {
     for (auto d : data) {
@@ -22,14 +24,20 @@ void printVector(vector<string> data) {
     }
 }
 
-template <typename T>
-std::vector<T> mergeVectors(const std::vector<T>& vector1, const std::vector<T>& vector2) {
-    std::vector<T> mergedVector;
-    mergedVector.reserve(vector1.size() + vector2.size());
-    mergedVector.insert(mergedVector.end(), vector1.begin(), vector1.end());
-    mergedVector.insert(mergedVector.end(), vector2.begin(), vector2.end());
+template <typename... Vectors>
+std::vector<std::string> mergeVectors(const Vectors&... vectors) {
+    std::vector<std::string> mergedVector;
+
+    // Helper lambda function to insert all elements from a vector into mergedVector
+    auto insertAll = [&mergedVector](const auto& vector) {
+        mergedVector.insert(mergedVector.end(), vector.begin(), vector.end());
+    };
+
+    (insertAll(vectors), ...);
+
     return mergedVector;
 }
+
 
 vector<string> readCSV(const string& filename)
 {
@@ -51,147 +59,235 @@ vector<string> readCSV(const string& filename)
     return data;
 }
 
+class Result 
+{
+    public:
+        long long int testCount = 0;
+        chrono::duration<double> elapsed;
+        vector<string> FP;
+        float accuracy = 0;
+        Result() {}
+        void setFP(vector<string> FP) {
+            this->FP = FP;
+        }
+        // This function should be called after all FP is set
+        void finalize(long long int size)
+        {
+            testCount = size;
+            this->accuracy = (testCount - FP.size()) / testCount;
+        }
+        ~Result() {}
+};
+
 class Tester {
     public:
-        CountingScalableBloomFilter& csbf;
-        // chrono::duration<double> elapsed;
-        vector<string> keys;
+AbstractFilter& bf;
+// chrono::duration<double> elapsed;
+vector<string> keys;
 
-        vector<string> nonkeys;
+vector<string> nonkeys;
 
-        vector<uint8_t> getAsciiBytes(const string& str) {
-            vector<uint8_t> bytes(str.begin(), str.end());
-            // cout << "String: " << str << endl;
-            // cout << "Bytes:" << bytes.size() << endl;
-            // for (uint8_t byte : bytes) {
-            //     cout << static_cast<int>(byte) << ' ';
-            // }
-            // cout << endl;
-            return bytes;
+vector<uint8_t> getAsciiBytes(const string& str) {
+    vector<uint8_t> bytes(str.begin(), str.end());
+    // cout << "String: " << str << endl;
+    // cout << "Bytes:" << bytes.size() << endl;
+    // for (uint8_t byte : bytes) {
+    //     cout << static_cast<int>(byte) << ' ';
+    // }
+    // cout << endl;
+    return bytes;
+}
+
+Tester(AbstractFilter& bf) : bf(bf) {
+    // this->bf = bf;
+    cout << "Tester is created" << endl;
+}
+
+void setEntry(vector<string> keys, vector<string> nonkeys) {
+    this->keys = keys;
+    this->nonkeys = nonkeys;
+}
+
+
+void getEntrySize() {
+    cout << "Keys: " << keys.size() << endl;
+    cout << "NonKeys: " << nonkeys.size() << endl;
+}
+
+//todo measure bf's size
+
+//todo try other set of m,k,s,fpRate
+//todo measure FP rate of bf
+//TODO generate 1M data (unique by line)
+//todo make Random set, Disjoint Set and Same se
+
+//todo => make the table
+
+//todo gives out The bf instance configures
+string getConfig() {
+    return bf.getConfigure();
+}
+
+//TODO measure bf's size
+// Return capacity of bf
+string Capacity() {
+    return to_string(bf.Capacity());
+}
+
+// Return number of hash functions
+uint32_t HashFunctionCount() {
+    return bf.K();
+}
+
+// Input: vector of strings || Output: chrono::duration<double> as total time elapsed
+chrono::duration<double> testAdding(vector<string> dataArray) {
+    chrono::duration<double> total_elapsed;
+    // cout << endl;
+    cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
+    // cout << endl;
+    for (auto data : dataArray) {
+        vector<uint8_t> dataBytes = getAsciiBytes(data);
+        auto start = chrono::high_resolution_clock::now();
+        bf.Add(dataBytes);
+        auto end = chrono::high_resolution_clock::now();
+        total_elapsed += end - start;
+        // cout << "Adding: " << dataBytes.data() << endl;
+    }
+    return total_elapsed;
+}
+
+// Input: vector of strings || Output: chrono::duration<double> as total time elapsed
+chrono::duration<double> testCheck(vector<string> dataArray) {
+    chrono::duration<double> total_elapsed;
+    // cout << endl;
+    cout << "Testing Test function for "<< dataArray.size()<<" entries!" << endl;
+    // cout << endl;
+    for (auto data : dataArray) {
+        vector<uint8_t> dataBytes = getAsciiBytes(data);
+        auto start = chrono::high_resolution_clock::now();
+        bf.Test(dataBytes);
+        auto end = chrono::high_resolution_clock::now();
+        total_elapsed += end - start;
+    }
+    return total_elapsed;
+}
+
+// Input: vector of strings || Output: chrono::duration<double> as total time elapsed
+chrono::duration<double> testRemove(vector<string> dataArray) {
+    chrono::duration<double> total_elapsed;
+    // cout << endl;
+    cout << "Testing Removing of "<< dataArray.size()<<" removals!" << endl;
+    // cout << endl;
+    for (auto data : dataArray) {
+        vector<uint8_t> dataBytes = getAsciiBytes(data);
+        auto start = chrono::high_resolution_clock::now();
+        bf.TestAndRemove(dataBytes);
+        auto end = chrono::high_resolution_clock::now();
+        total_elapsed += end - start;
+    }
+    return total_elapsed;
+}
+
+Result TestFP(vector<string> dataArray, bool correctAns=true) {
+    Result result;
+    for (auto data : dataArray) {
+        vector<uint8_t> dataBytes = getAsciiBytes(data);
+        auto start = chrono::high_resolution_clock::now();
+        if (bf.Test(dataBytes) != correctAns) {
+            result.FP.push_back(data);
         }
+        auto end = chrono::high_resolution_clock::now();
+        result.elapsed += end - start;
+    }
+    result.finalize(dataArray.size());
+    return result;
+}
 
-        Tester(CountingScalableBloomFilter& csbf) : csbf(csbf) {
-            // this->csbf = csbf;
-            cout << "Tester is created" << endl;
-        }
+void GenericTestSuite()
+{
 
-        void setEntry(vector<string> keys, vector<string> nonkeys) {
-            this->keys = keys;
-            this->nonkeys = nonkeys;
-        }
+    auto keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3), readCSV(set4));
+    auto notkeys = readCSV(set5);
+    cout << endl;
+    auto elapsed = testAdding(keys).count();
+    cout << "Adding Elapsed time: " << elapsed << "s" << endl;
+    cout << endl;
 
-        void getEntrySize() {
-            cout << "Keys: " << keys.size() << endl;
-            cout << "NonKeys: " << nonkeys.size() << endl;
-        }
+    // #      Test = 800k keys       .. 200k not keys
+    cout << endl;
+    auto adjacent_set1 = mergeVectors(keys, notkeys);
+    elapsed = testCheck(adjacent_set1).count();
+    cout << "Check Elapsed time: " << elapsed << "s" << endl;
+    cout << endl;
 
-        //todo measure csbf's size
+    // #      Test = 200k not keys   .. 800k keys
+    cout << endl;
+    auto adjacent_set2 = mergeVectors(notkeys, keys);
+    elapsed = testCheck(adjacent_set2).count();
+    cout << "Check Elapsed time: " << elapsed << "s" << endl;
+    cout << endl;
 
-        //todo try other set of m,k,s,fpRate
-        //todo measure FP rate of csbf
-        //TODO generate 1M data (unique by line)
-        //todo make Random set, Disjoint Set and Same set 
+    //? More details with Test = set1 . set5 . set2 . set3 . set4
+    cout << endl;
+    cout << "   ** 1M entries test for 200k(keys) . 200k(notkeys) . 600k(keys) **" << endl;
+    Result result;
 
-        //todo => make the table
+    long long int fpCount = 0;
+    long long int testCount = 0;
+    auto time = chrono::duration<double>(0);
 
-        //todo gives out The csbf instance configures
-        string getConfig() {
-            return csbf.getConfigure();
-        }
+    result = TestFP(readCSV(set1), true);
+    fpCount += result.FP.size();
+    cout << "FP count for set1: " << result.FP.size() << endl;
+    testCount += result.testCount;
+    time += result.elapsed;
 
-        //TODO measure csbf's size
-        // Return capacity of csbf
-        string Capacity() {
-            return to_string(csbf.Capacity());
-        }
+    result = TestFP(readCSV(set5), false);
+    fpCount += result.FP.size();
+    cout << "FP count for set5: " << result.FP.size() << endl;
+    testCount += result.testCount;
+    time += result.elapsed;
 
-        // Return number of hash functions
-        uint32_t HashFunctionCount() {
-            return csbf.K();
-        }
+    result = TestFP(readCSV(set2), true);
+    fpCount += result.FP.size();
+    cout << "FP count for set2: " << result.FP.size() << endl;
+    testCount += result.testCount;
+    time += result.elapsed;
 
-        // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
-        chrono::duration<double> testAdding(vector<string> dataArray) {
-            chrono::duration<double> total_elapsed;
-            // cout << endl;
-            cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
-            // cout << endl;
-            for (auto data : dataArray) {
-                vector<uint8_t> dataBytes = getAsciiBytes(data);
-                auto start = chrono::high_resolution_clock::now();
-                csbf.Add(dataBytes);
-                auto end = chrono::high_resolution_clock::now();
-                total_elapsed += end - start;
-                // cout << "Adding: " << dataBytes.data() << endl;
-            }
-            return total_elapsed;
-        }
+    result = TestFP(readCSV(set3), true);
+    fpCount += result.FP.size();
+    cout << "FP count for set3: " << result.FP.size() << endl;
+    testCount += result.testCount;
+    time += result.elapsed;
 
-        // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
-        chrono::duration<double> testCheck(vector<string> dataArray) {
-            chrono::duration<double> total_elapsed;
-            // cout << endl;
-            cout << "Testing Test function for "<< dataArray.size()<<" entries!" << endl;
-            // cout << endl;
-            for (auto data : dataArray) {
-                vector<uint8_t> dataBytes = getAsciiBytes(data);
-                auto start = chrono::high_resolution_clock::now();
-                csbf.Test(dataBytes);
-                auto end = chrono::high_resolution_clock::now();
-                total_elapsed += end - start;
-            }
-            return total_elapsed;
-        }
+    result = TestFP(readCSV(set4), true);
+    fpCount += result.FP.size();
+    cout << "FP count for set4: " << result.FP.size() << endl;
+    testCount += result.testCount;
+    time += result.elapsed;
 
-        // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
-        chrono::duration<double> testRemove(vector<string> dataArray) {
-            chrono::duration<double> total_elapsed;
-            // cout << endl;
-            cout << "Testing Removing of "<< dataArray.size()<<" removals!" << endl;
-            // cout << endl;
-            for (auto data : dataArray) {
-                vector<uint8_t> dataBytes = getAsciiBytes(data);
-                auto start = chrono::high_resolution_clock::now();
-                csbf.TestAndRemove(dataBytes);
-                auto end = chrono::high_resolution_clock::now();
-                total_elapsed += end - start;
-            }
-            return total_elapsed;
-        }
+    float accuracy = 1.0f - static_cast<float>(fpCount) / static_cast<float>(testCount);
+    cout << fixed << setprecision(6);
 
-        
-        ~Tester() {
-        }
+    cout << "False Positive Count: " << fpCount << " -- Accuracy: " << accuracy << endl;
+    cout << "Total Test Count: " << testCount << endl;
+    cout << "Total Elapsed Time: " << time.count() << "s" << endl;
+    cout << endl;
+
+    cout << getConfig() << endl;
+
+    cout << "Test done running!" << endl;
+}
+
+
+~Tester() {
+}
 };
 
 int main()
 {
-    auto keys = readCSV(set700);
-    auto notkeys = readCSV(set300);
-    CountingScalableBloomFilter csbf(keys.size());
-    cout << "Debug!" << endl;
+    CountingScalableBloomFilter csbf;
     Tester tester(csbf);
-    cout << endl;
-    auto elapsed = tester.testAdding(keys).count();
-    cout << "Adding Elapsed time: " << elapsed << "s" << endl;
-    cout << endl;
-
-//#      Test = 700k keys .. 300k not keys
-    cout << endl;
-    auto adjacent_set1 = mergeVectors(keys, notkeys);
-    elapsed = tester.testCheck(adjacent_set1).count();
-    cout << "Check Elapsed time: " << elapsed << "s" << endl;
-    cout << endl;
-
-//#      Test = 300k not keys .. 700k keys
-    cout << endl;
-    auto adjacent_set2 = mergeVectors(notkeys, keys);
-    elapsed = tester.testCheck(adjacent_set2).count();
-    cout << "Check Elapsed time: " << elapsed << "s" << endl;
-    cout << endl;
-
-    cout << tester.getConfig() << endl;
-
-    cout << "Everything done running!" <<endl;
+    tester.GenericTestSuite();
     return 0;
 }

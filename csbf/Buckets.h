@@ -18,14 +18,13 @@ class Buckets {
           uint8_t bucketSize) {  
     this->count = count;
     // Calculate the size of the data buffer in bytes
-    int dataSize = ((bucketSize + 7) / 8);
+    int dataSize = ((bucketSize + 8 - 1) / 8);
     
     this->Data = (uint8_t*)calloc(count, dataSize);
 
     this->bucketSize = bucketSize;
     // Calculate the maximum value for a bucket
     this->Max = (1 << bucketSize) - 1;
-    // cout << "still alive" << endl;
     this->recheck_data();
   }
 
@@ -56,8 +55,7 @@ class Buckets {
       val = 0;
     }
 
-    SetBits((uint32_t)bucket * (uint32_t)this->bucketSize, this->bucketSize,
-             (uint32_t)val);
+    SetBits((uint32_t)bucket * (uint32_t)this->bucketSize, this->bucketSize, (uint32_t)val);
     return *this;
   }
 
@@ -88,19 +86,18 @@ class Buckets {
     int byteOffset = (int)(offset % 8);
     if ((byteOffset + length) > 8) {
       int rem = 8 - byteOffset;
-      return GetBits(offset, rem) |
-             (GetBits((uint32_t)(offset + rem), length - rem) << rem);
+      return GetBits(offset, rem) | (GetBits((uint32_t)(offset + rem), length - rem) << rem);
     }
 
     int bitMask = (1 << length) - 1;
-
-    auto a = (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset);
     return (uint32_t)((this->Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset);
   }
 
   // Set bits in the data buffer at a specific offset and length
-  void SetBits(uint32_t offset, int length, uint32_t bits) {
-    uint32_t byteIndex = offset / 8;
+  // `offset` is the starting bit index,  `length` is the number of bits to set, `bits` is the value to set
+  // `bits` < 2^length else zero will be set
+  void SetBits(uint32_t offset , int length, uint32_t bits) {
+    uint32_t byteIndex = offset / 8; //@ 8 is size of uint8_t
     int byteOffset = (int)(offset % 8);
 
     if ((byteOffset + length) > 8) {
@@ -112,9 +109,9 @@ class Buckets {
 
     int bitMask = (1 << length) - 1;
     this->Data[byteIndex] =
-        (uint8_t)((this->Data[byteIndex]) & ~(bitMask << byteOffset));
+        (uint8_t)((this->Data[byteIndex]) & ~(bitMask << byteOffset)); //@ strip off the bits that will be replaced
     this->Data[byteIndex] =
-        (uint8_t)((this->Data[byteIndex]) | ((bits & bitMask) << byteOffset));
+        (uint8_t)((this->Data[byteIndex]) | ((bits & bitMask) << byteOffset)); //@ set the value into the blank space
   }
 
   // Destructor to free the allocated memory

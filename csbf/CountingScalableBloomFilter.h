@@ -13,9 +13,29 @@
 using namespace std;
 using namespace BloomFilterApp;
 namespace BloomFilterModels {
+    class AbstractFilter {
+    public:
+    // # Compulsory methods
+        virtual uint32_t Capacity() const = 0;
+        virtual uint32_t K() const = 0;
+        virtual bool Test(const std::vector<uint8_t>& data) const = 0;
+        virtual AbstractFilter& Add(const std::vector<uint8_t>& data) = 0;
+        virtual AbstractFilter& Reset() = 0;
+    // # Specialized methods
+        string getConfigure() {
+            string res;
+            res += "Capacity: " + Capacity() + '\n';
+            res += "K: " + K() + '\n';
+        };
+        bool TestAndRemove(const std::vector<uint8_t>& data){
+            cout << "Unsupported method: TestAndRemove" << endl;
+            return false;
+        };
+        virtual ~AbstractFilter() {}
+    };
 
     // CountingBloomFilter structure and methods
-    class CountingBloomFilter {
+    class CountingBloomFilter : public BloomFilterModels::AbstractFilter {
         Buckets* buckets; // Bucket array
         uint32_t m; // Filter size (number of buckets)
         uint32_t k; // Number of hash functions
@@ -28,7 +48,7 @@ namespace BloomFilterModels {
         CountingBloomFilter(uint32_t n, 
                             uint8_t b, 
                             double fpRate,
-                            uint32_t countExist                 = 0) :
+                            uint32_t countExist = 0) :
             buckets    (new Buckets(Utils::OptimalMCounting(n, fpRate), b)),   // Initialize buckets 
             m          (Utils::OptimalMCounting(n, fpRate)),               // Calculate filter size
             k          (Utils::OptimalKCounting(fpRate)),                  // Calculate number of hash functions
@@ -160,7 +180,7 @@ namespace BloomFilterModels {
     }; // end of CountingBloomFilter
 
     // CountingScalableBloomFilter structure and methods
-    class CountingScalableBloomFilter {
+    class CountingScalableBloomFilter : public BloomFilterModels::AbstractFilter {
         std::vector<CountingBloomFilter> filters; // List of CountingBloomFilter objects
         double r; // Tightening ratio
         double fp; // Target false-positive rate
@@ -181,15 +201,23 @@ namespace BloomFilterModels {
             return 0;
         }
     public:
-        CountingScalableBloomFilter(uint32_t p      = Defaults::MAX_COUNT_NUMBER,
-                                    double fpRate   = Defaults::FALSE_POSITIVE_RATE,
-                                    double r        = Defaults::FILL_RATIO,
-                                    uint32_t s      = Defaults::SCALABLE_GROWTH,
-                                    const std::vector<std::vector<uint8_t>>& data = {}) :
-            r(r), fp(fpRate), p(p), s(s)
+        CountingScalableBloomFilter() : r   (Defaults::FILL_RATIO),
+                                        fp  (Defaults::FALSE_POSITIVE_RATE),
+                                        p   (Defaults::MAX_COUNT_NUMBER),
+                                        s   (Defaults::SCALABLE_GROWTH)
         {
-            int addf = AddFilter(data);
+            AddFilter(); // Add the first filter
         }
+
+        // CountingScalableBloomFilter(uint32_t p      = Defaults::MAX_COUNT_NUMBER,
+        //                             double fpRate   = Defaults::FALSE_POSITIVE_RATE,
+        //                             double r        = Defaults::FILL_RATIO,
+        //                             uint32_t s      = Defaults::SCALABLE_GROWTH,
+        //                             const std::vector<std::vector<uint8_t>>& data = {}) :
+        //     r(r), fp(fpRate), p(p), s(s)
+        // {
+        //     int addf = AddFilter(data);
+        // }
 
         std::string getConfigure() {
             std::string res = "_ _ _ CSBF Scope _ _ _ \n";

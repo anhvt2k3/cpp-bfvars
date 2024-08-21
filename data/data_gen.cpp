@@ -7,10 +7,11 @@
 using namespace std;
 string names = "names.csv";
 string dataset0 = "dataset0.csv"; //@ 0 => all possible values
-string dataset1 = "dataset1.csv"; //@ 1 => values: 0 -> 300k
-string dataset2 = "dataset2.csv"; //@ 2 => values: 300k001 -> 1M
-string dataset3 = "dataset3.csv"; //@ 3 => values: 0 -> 500k
-string dataset4 = "dataset4.csv"; //@ 4 => values: 500k001 -> 1M
+string dataset1 = "dataset1.csv"; //@ 1 => values: 1 -> 200k+1
+string dataset2 = "dataset2.csv"; //@ 2 => values: 200k+1 -> 400k
+string dataset3 = "dataset3.csv"; //@ 3 => values: 400k+1 -> 600k
+string dataset4 = "dataset4.csv"; //@ 4 => values: 600k+1 -> 800k
+string dataset5 = "dataset5.csv"; //@ 5 => values: 800k+1 -> 1M
 
 //todo dataset1 => keys (size = 700k)
 //todo dataset2 => faulties (size = 300k)
@@ -80,7 +81,10 @@ void genDataset(string filename, long long min = 0, long long max = 1000000)
 
 int main()
 {
-    // genDataset(dataset3,0,500000);
-    // genDataset(dataset4,500001,1000000);
+    genDataset(dataset1,1,200000);
+    genDataset(dataset2,200001,400000);
+    genDataset(dataset3,400001,600000);
+    genDataset(dataset4,600001,800000);
+    genDataset(dataset5,800001,1000000);
     return 0;
 }
