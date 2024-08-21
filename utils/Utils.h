@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <openssl/sha.h>
+#include "./smhasher-master/src/Hashes.h"
 
 namespace BloomFilterApp
 {

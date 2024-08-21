@@ -22,16 +22,37 @@ namespace BloomFilterModels {
         virtual AbstractFilter& Add(const std::vector<uint8_t>& data) = 0;
         virtual AbstractFilter& Reset() = 0;
     // # Specialized methods
-        string getConfigure() {
-            string res;
-            res += "Capacity: " + Capacity() + '\n';
-            res += "K: " + K() + '\n';
+        virtual string getConfigure() {
+            return "Unsupported method: getConfigure";
         };
-        bool TestAndRemove(const std::vector<uint8_t>& data){
+        virtual bool TestAndRemove(const std::vector<uint8_t>& data){
             cout << "Unsupported method: TestAndRemove" << endl;
             return false;
         };
-        virtual ~AbstractFilter() {}
+    };
+
+    class StandardCoutingBloomFilter : public BloomFilterModels::AbstractFilter {
+        Buckets* buckets; // Bucket array
+        uint32_t m; // Filter size (number of buckets)
+        uint32_t k; // Number of hash functions
+        uint32_t count; // Number of items added
+        uint32_t maxCapacity; // Maximum capacity of the filter
+        double fpRate; // Target false-positive rate
+public:
+        StandardCoutingBloomFilter() {}
+        StandardCoutingBloomFilter(uint32_t n, 
+                            uint8_t b, 
+                            double fpRate,
+                            uint32_t countExist = 0) :
+            buckets    (new Buckets(Utils::OptimalMCounting(n, fpRate), b)),   // Initialize buckets 
+            m          (Utils::OptimalMCounting(n, fpRate)),               // Calculate filter size
+            k          (Utils::OptimalKCounting(fpRate)),                  // Calculate number of hash functions
+            count      (countExist),                                       // Initialize count
+            maxCapacity(n),                                                // Set maximum capacity
+            fpRate     (fpRate)                                            // Set false-positive rate
+        {
+        }
+        ~StandardCoutingBloomFilter() {}
     };
 
     // CountingBloomFilter structure and methods
@@ -176,7 +197,9 @@ namespace BloomFilterModels {
             return member;
         }
 
-        ~CountingBloomFilter() {}
+        ~CountingBloomFilter() {
+            delete buckets;
+        }
     }; // end of CountingBloomFilter
 
     // CountingScalableBloomFilter structure and methods
