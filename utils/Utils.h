@@ -25,11 +25,6 @@ namespace BloomFilterApp
         }
     };
 
-    class HashAlgorithm
-    {
-        
-    };
-
     // Utils
     class Utils
     {
@@ -48,13 +43,16 @@ namespace BloomFilterApp
 
         static HashKernelReturnValue HashKernel(const std::vector<uint8_t>& data, const std::string& algorithm = "sha256")
         {
-            std::vector<uint8_t> hashBytes(SHA256_DIGEST_LENGTH);
-            SHA256_CTX sha256;
-            SHA256_Init(&sha256);
-            SHA256_Update(&sha256, data.data(), data.size());
-            SHA256_Final(hashBytes.data(), &sha256);
+            if (algorithm == "sha256")
+            {
+                std::vector<uint8_t> hashBytes(SHA256_DIGEST_LENGTH);
+                SHA256_CTX sha256;
+                SHA256_Init(&sha256);
+                SHA256_Update(&sha256, data.data(), data.size());
+                SHA256_Final(hashBytes.data(), &sha256);
 
-            return HashKernelFromHashBytes(hashBytes);
+                return HashKernelFromHashBytes(hashBytes);
+            }
         }
 
         static HashKernelReturnValue HashKernelFromHashBytes(const std::vector<uint8_t>& hashBytes)

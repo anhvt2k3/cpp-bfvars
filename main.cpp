@@ -190,7 +190,7 @@ public:
         return result;
     }
 
-    void StaticSetsTestSuite()
+    void DynamicVariantTester()
     {
         auto keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3), readCSV(set4));
         auto notkeys = readCSV(set5);
@@ -274,6 +274,6 @@ int main()
 {
     CountingScalableBloomFilter csbf;
     Tester tester(csbf);
-    tester.StaticSetsTestSuite();
+    tester.DynamicVariantTester();
     return 0;
 }

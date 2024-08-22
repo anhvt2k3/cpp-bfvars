@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <ctime>
 #include <string>
+#include <memory>
 
 #include "Buckets.h"
 #include "../utils/Defaults.h"
@@ -16,7 +17,9 @@ namespace BloomFilterModels {
     class AbstractFilter {
     public:
     // # Compulsory methods
+        virtual uint32_t Size() const = 0;
         virtual uint32_t Capacity() const = 0;
+        virtual double FPrate() const = 0;
         virtual uint32_t K() const = 0;
         virtual bool Test(const std::vector<uint8_t>& data) const = 0;
         virtual AbstractFilter& Add(const std::vector<uint8_t>& data) = 0;
@@ -32,7 +35,7 @@ namespace BloomFilterModels {
     };
 
     class StandardCoutingBloomFilter : public BloomFilterModels::AbstractFilter {
-        Buckets* buckets; // Bucket array
+        unique_ptr<Buckets> buckets; // Bucket array
         uint32_t m; // Filter size (number of buckets)
         uint32_t k; // Number of hash functions
         uint32_t count; // Number of items added
@@ -44,7 +47,7 @@ public:
                             uint8_t b, 
                             double fpRate,
                             uint32_t countExist = 0) :
-            buckets    (new Buckets(Utils::OptimalMCounting(n, fpRate), b)),   // Initialize buckets 
+            buckets    (make_unique<Buckets>(Utils::OptimalMCounting(n, fpRate), b)),   // Initialize buckets 
             m          (Utils::OptimalMCounting(n, fpRate)),               // Calculate filter size
             k          (Utils::OptimalKCounting(fpRate)),                  // Calculate number of hash functions
             count      (countExist),                                       // Initialize count
@@ -52,6 +55,7 @@ public:
             fpRate     (fpRate)                                            // Set false-positive rate
         {
         }
+
         ~StandardCoutingBloomFilter() {}
     };
 
@@ -64,7 +68,7 @@ public:
         uint32_t maxCapacity; // Maximum capacity of the filter
         double fpRate; // Target false-positive rate
         // std::unique_ptr<HashAlgorithm> hash; // Hash algorithm object
-    public:
+public:
         CountingBloomFilter() {}
         CountingBloomFilter(uint32_t n, 
                             uint8_t b, 
@@ -80,12 +84,12 @@ public:
         }
 
         // Returns the maximum capacity of the filter
-        uint32_t Max_capacity() const {
+        uint32_t Capacity() const {
             return maxCapacity;
         }
 
         // Returns the filter capacity
-        uint32_t Capacity() const {
+        uint32_t Size() const {
             return m;
         }
 
@@ -97,6 +101,11 @@ public:
         // Returns the number of items in the filter
         uint32_t Count() const {
             return count;
+        }
+
+        // Returns the target false-positive rate
+        double FPrate() const {
+            return fpRate;
         }
 
         // Tests for membership of the data.
@@ -117,7 +126,7 @@ public:
             return true;
         }
 
-        // Adds the data to the filter.
+        // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
         CountingBloomFilter& Add(const std::vector<uint8_t>& data) {
             auto hashKernel = Utils::HashKernel(data); // Generate hash kernels
@@ -143,7 +152,7 @@ public:
         }
 
         //@ unsupported
-        // Sets the hashing function used in the filter.
+        // Sets the hashing function used in the filter->
         // void SetHash(HashAlgorithm* h) {
         //     hash.reset(h); // Set the hash algorithm object
         // }
@@ -198,29 +207,26 @@ public:
         }
 
         ~CountingBloomFilter() {
-            delete buckets;
         }
     }; // end of CountingBloomFilter
 
     // CountingScalableBloomFilter structure and methods
     class CountingScalableBloomFilter : public BloomFilterModels::AbstractFilter {
-        std::vector<CountingBloomFilter> filters; // List of CountingBloomFilter objects
+        vector<shared_ptr<CountingBloomFilter>> filters;
         double r; // Tightening ratio
         double fp; // Target false-positive rate
         uint32_t p; // Maximum item count for each CountingBloomFilter
         uint32_t s; // Scalable growth factor
-        // std::time_t syncDate; // Synchronization date
+        // time_t syncDate; // Synchronization date
 
         // Adds a new filter to the list with restricted false-positive rate.
-        int AddFilter(const std::vector<std::vector<uint8_t>>& data = {}) {
+        int AddFilter(const vector<vector<uint8_t>>& data = {}) {
             // Calculate false-positive rate and capacity for the new filter
-            double fpRate = fp * std::pow(r, filters.size());
-            uint32_t capacity = p * std::pow(s, filters.size());
-            CountingBloomFilter newFilter(capacity, 4, fpRate); // Create a new CountingBloomFilter
-            filters.push_back(newFilter); // Add the new filter to the list
-
-
-            // cout << "Filter added " << filters.size()  << " "<< newFilter.Capacity() << endl;
+            double fpRate = fp * pow(r, filters.size());
+            uint32_t capacity = p * pow(s, filters.size());
+            
+            filters.push_back(make_shared<CountingBloomFilter>(capacity, 4, fpRate));
+            // cout << "Filter added " << filters.size()  << " "<< newFilter->Size() << endl;
             return 0;
         }
     public:
@@ -247,41 +253,49 @@ public:
             res += "Tightening-ratio: " + std::__cxx11::to_string(r) + "\n";
             res += "False positive rate: " + std::__cxx11::to_string(fp) + "\n";
             res += "Current max capacity: " + std::__cxx11::to_string(p) + "\n";
-            res += "Current filter capacity: " + std::__cxx11::to_string(Capacity()) + "\n";
+            res += "Current filter capacity: " + std::__cxx11::to_string(Size()) + "\n";
             res += "Scale growth: " + std::__cxx11::to_string(s) + "\n";
             res += "CBF Scope \n";
             res += "Number of filters: " + std::__cxx11::to_string(filters.size()) + "\n";
             for (int i=0; i<filters.size(); i++) {
                 auto filter = filters[i];
                 res += "_ _ _ Filter " + std::__cxx11::to_string(i) + " _ _ _\n";
-                res += "Filter max capacity: " + std::__cxx11::to_string(filter.Max_capacity()) + "\n";
-                res += "Filter capacity: " + std::__cxx11::to_string(filter.Capacity()) + "\n";
-                res += "Filter count: " + std::__cxx11::to_string(filter.Count()) + "\n";
-                res += "Filter K: " + std::__cxx11::to_string(filter.K()) + "\n";
+                res += "Filter max capacity: " + std::__cxx11::to_string(filter->Capacity()) + "\n";
+                res += "Filter size: " + std::__cxx11::to_string(filter->Size()) + "\n";
+                res += "Filter count: " + std::__cxx11::to_string(filter->Count()) + "\n";
+                res += "Filter K: " + std::__cxx11::to_string(filter->K()) + "\n";
             }
             return res;
         }
 
-
-        //@ unsupported
-        // CountingScalableBloomFilter(const CreateBloomFilterModel& model) :
-        //     r(model.R), fp(model.FP), p(model.P), syncDate(model.SynceDate)
-        // {
-        //     AddFilter(model.FilterModels);
-        // }
-
-        // Returns the current filter capacity.
+        // Returns the maximum capacity of the filter->
         uint32_t Capacity() const {
-            uint32_t capacity = 0;
+            uint32_t c = 0;
             for (const auto& filter : filters) {
-                capacity += filter.Capacity();
+                if (filter->Count() < filter->Capacity()) {
+                    c += filter->Capacity();
+                }
             }
-            return capacity;
+            return c;
         }
 
-        // Returns the number of hash functions used in each filter.
+        // Return False Positive Rate
+        double FPrate() const {
+            return fp;
+        }
+
+        // Returns the current filter size.
+        uint32_t Size() const {
+            uint32_t size = 0;
+            for (const auto& filter : filters) {
+                size += filter->Size();
+            }
+            return size;
+        }
+
+        // Returns the number of hash functions used in each filter->
         uint32_t K() const {
-            return filters.empty() ? 0 : filters.front().K(); // Return the K of the first filter
+            return filters.empty() ? 0 : filters.front()->K(); // Return the K of the first filter
         }
 
         // Tests for membership of the data.
@@ -289,33 +303,33 @@ public:
         bool Test(const std::vector<uint8_t>& data) const {
             // Check for membership in each filter
             for (const auto& filter : filters) {
-                if (filter.Test(data)) {
+                if (filter->Test(data)) {
                     return true;
                 }
             }
             return false;
         }
 
-        // Adds the data to the filter.
+        // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
         CountingScalableBloomFilter& Add(const std::vector<uint8_t>& data) {
-            if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter.Count() == filter.Max_capacity(); })) {
+            if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter->Count() == filter->Capacity(); })) {
                 AddFilter(); // Add a new filter if all filters are full
             }
             // cout << "csbf-Adding: " << data.data() << endl;
+            // cout << filters.back().Size() << endl;
             // cout << filters.back().Capacity() << endl;
-            // cout << filters.back().Max_capacity() << endl;
 
-            filters.back().Add(data); // Add data to the last filter
+            filters.back()->Add(data); // Add data to the last filter
             // cout << "csbf-Added: " << data.data() << endl;
             return *this;
         }
 
         
-        // Removes the data from the filter.
+        // Removes the data from the filter->
         // Returns a reference to the filter for chaining.
         // CountingScalableBloomFilter& Remove(const std::vector<uint8_t>& data) {
-        //     if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter.Count() == filter.Max_capacity(); })) {
+        //     if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter->Count() == filter->Capacity(); })) {
         //         AddFilter(); // Add a new filter if all filters are full
         //     }
         //     filters.back().Add(data); // Add data to the last filter
@@ -336,8 +350,8 @@ public:
         // Returns true if the data was probably in the filter, false otherwise.
         bool TestAndRemove(const std::vector<uint8_t>& data) {
             for (auto& filter : filters) {
-                if (filter.Test(data)) {
-                    filter.TestAndRemove(data);
+                if (filter->Test(data)) {
+                    filter->TestAndRemove(data);
                     return true;
                 }
             }
@@ -345,10 +359,10 @@ public:
         }
 
         //@ unsupported
-        // Sets the hashing function used in the filter.
+        // Sets the hashing function used in the filter->
         // void SetHash(HashAlgorithm* h) {
         //     for (auto& filter : filters) {
-        //         filter.SetHash(h);
+        //         filter->SetHash(h);
         //     }
         // }
 
@@ -360,11 +374,14 @@ public:
             return *this;
         }
 
+        ~CountingScalableBloomFilter() {
+        }
+
     };
 
     //@ unsupported
     // Creates a new Scalable Bloom Filter with the specified target false-positive rate and an optimal tightening ratio.
-    // Returns a pointer to the created filter.
+    // Returns a pointer to the created filter->
     // CountingScalableBloomFilter* NewDefaultScalableBloomFilter(double fpRate) {
     //     return new CountingScalableBloomFilter(fpRate, 0.8, 10000); // Create a filter with default parameters
     // }
