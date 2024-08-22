@@ -53,6 +53,13 @@ namespace BloomFilterApp
 
                 return HashKernelFromHashBytes(hashBytes);
             }
+            if (algorithm == "murmur")
+            {
+                uint32_t hash[2];
+                hash[0] = MurmurHash1(data.data(), data.size(), 0);
+                hash[1] = MurmurHash2(data.data(), data.size(), 0);
+                return HashKernelReturnValue::Create(hash[0], hash[1]);
+            }
         }
 
         static HashKernelReturnValue HashKernelFromHashBytes(const std::vector<uint8_t>& hashBytes)
