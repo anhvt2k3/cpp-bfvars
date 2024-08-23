@@ -97,19 +97,18 @@ public:
         return bytes;
     }
 
-    Tester(vector<string> keys, vector<string> nonkeys) 
-        : keys(keys), nonkeys(nonkeys)
-    {
-        cout << "Tester for Standard BF is created" << endl;
-    }
-
     Tester(AbstractFilter& bf) : bf(bf) {
-        cout << "Tester for Custom BF is created" << endl;
+        cout << "Tester object created!" << endl;
     }
 
-    void setEntry(vector<string> keys, vector<string> nonkeys) {
-        this->keys = keys;
-        this->nonkeys = nonkeys;
+    void initTester() {
+        this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3), readCSV(set4));
+        this->nonkeys = readCSV(set5);
+        if (StaticFilter* sf = dynamic_cast<StaticFilter*>(&bf)) {
+            (this->bf).Init(keys.size(), 4, Defaults::FALSE_POSITIVE_RATE);
+        } else if (DynamicFilter* df = dynamic_cast<DynamicFilter*>(&bf)) {
+            cout << "DynamicFilter object initialized!" << endl;
+        }
     }
 
     void getEntrySize() {
@@ -351,8 +350,6 @@ public:
 
 int main()
 {
-    CountingScalableBloomFilter csbf;
-    Tester tester(csbf);
-    tester.DynamicFilterTestsuite();
+    StandardBloomFilter bf;
     return 0;
 }

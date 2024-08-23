@@ -23,8 +23,11 @@ namespace BloomFilterModels {
         virtual uint32_t K() const = 0;
         virtual bool Test(const std::vector<uint8_t>& data) const = 0;
         virtual AbstractFilter& Add(const std::vector<uint8_t>& data) = 0;
-        virtual AbstractFilter& Reset() = 0;
+        // virtual AbstractFilter& Reset() = 0;
     // # Specialized methods
+        virtual void Init(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) {
+            cout << "Unsupported method: Init" << endl;
+        };
         virtual string getConfigure() {
             return "Unsupported method: getConfigure";
         };
@@ -34,31 +37,38 @@ namespace BloomFilterModels {
         };
     };
 
-    class StaticFilter : public AbstractFilter {};
-
-    class DynamicFilter : public AbstractFilter {};
-
-    class StandardBloomFilter : public StaticFilter {
+    class StaticFilter : public AbstractFilter {
+protected:
         unique_ptr<Buckets> buckets; // Bucket array
         uint32_t m; // Filter size (number of buckets)
         uint32_t k; // Number of hash functions
         uint32_t count; // Number of items added
         uint32_t maxCapacity; // Maximum capacity of the filter
         double fpRate; // Target false-positive rate
+        
+        void Init(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) {
+            this->buckets = make_unique<Buckets>(Utils::OptimalMCounting(n, fpRate), b);
+            this->m = Utils::OptimalMCounting(n, fpRate);
+            this->k = Utils::OptimalKCounting(fpRate);
+            this->count = countExist;
+            this->maxCapacity = n;
+            this->fpRate = fpRate;
+        }
+public:
+        StaticFilter() {}
+        StaticFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) {
+            this->Init(n, b, fpRate, countExist);
+        }
+    };
+
+    class DynamicFilter : public AbstractFilter {};
+
+    class StandardBloomFilter : public StaticFilter {
 public:
         StandardBloomFilter() {}
-        StandardBloomFilter(uint32_t n, 
-                            uint8_t b, 
-                            double fpRate,
-                            uint32_t countExist = 0) :
-            buckets    (make_unique<Buckets>(Utils::OptimalMCounting(n, fpRate), b)),   // Initialize buckets 
-            m          (Utils::OptimalMCounting(n, fpRate)),               // Calculate filter size
-            k          (Utils::OptimalKCounting(fpRate)),                  // Calculate number of hash functions
-            count      (countExist),                                       // Initialize count
-            maxCapacity(n),                                                // Set maximum capacity
-            fpRate     (fpRate)                                            // Set false-positive rate
-        {
-        }
+        StandardBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
+            : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
+        {}
 
         // Returns the maximum capacity of the filter
         uint32_t Capacity() const {
@@ -144,26 +154,11 @@ public:
         ~StandardBloomFilter() {}
     };
     class StandardCountingBloomFilter : public StaticFilter {
-        unique_ptr<Buckets> buckets; // Bucket array
-        uint32_t m; // Filter size (number of buckets)
-        uint32_t k; // Number of hash functions
-        uint32_t count; // Number of items added
-        uint32_t maxCapacity; // Maximum capacity of the filter
-        double fpRate; // Target false-positive rate
 public:
         StandardCountingBloomFilter() {}
-        StandardCountingBloomFilter(uint32_t n, 
-                            uint8_t b, 
-                            double fpRate,
-                            uint32_t countExist = 0) :
-            buckets    (make_unique<Buckets>(Utils::OptimalMCounting(n, fpRate), b)),   // Initialize buckets 
-            m          (Utils::OptimalMCounting(n, fpRate)),               // Calculate filter size
-            k          (Utils::OptimalKCounting(fpRate)),                  // Calculate number of hash functions
-            count      (countExist),                                       // Initialize count
-            maxCapacity(n),                                                // Set maximum capacity
-            fpRate     (fpRate)                                            // Set false-positive rate
-        {
-        }
+        StandardCountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
+            : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
+        {}
 
         // Returns the maximum capacity of the filter
         uint32_t Capacity() const {
@@ -279,27 +274,12 @@ public:
 
     // CountingBloomFilter structure and methods
     class CountingBloomFilter : public StaticFilter {
-        Buckets* buckets; // Bucket array
-        uint32_t m; // Filter size (number of buckets)
-        uint32_t k; // Number of hash functions
-        uint32_t count; // Number of items added
-        uint32_t maxCapacity; // Maximum capacity of the filter
-        double fpRate; // Target false-positive rate
         // std::unique_ptr<HashAlgorithm> hash; // Hash algorithm object
 public:
         CountingBloomFilter() {}
-        CountingBloomFilter(uint32_t n, 
-                            uint8_t b, 
-                            double fpRate,
-                            uint32_t countExist = 0) :
-            buckets    (new Buckets(Utils::OptimalMCounting(n, fpRate), b)),   // Initialize buckets 
-            m          (Utils::OptimalMCounting(n, fpRate)),               // Calculate filter size
-            k          (Utils::OptimalKCounting(fpRate)),                  // Calculate number of hash functions
-            count      (countExist),                                       // Initialize count
-            maxCapacity(n),                                                // Set maximum capacity
-            fpRate     (fpRate)                                            // Set false-positive rate
-        {
-        }
+        CountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
+            : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
+        {}
 
         // Returns the maximum capacity of the filter
         uint32_t Capacity() const {
