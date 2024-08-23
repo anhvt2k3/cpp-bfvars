@@ -34,7 +34,11 @@ namespace BloomFilterModels {
         };
     };
 
-    class StandardCoutingBloomFilter : public BloomFilterModels::AbstractFilter {
+    class StaticFilter : public AbstractFilter {};
+
+    class DynamicFilter : public AbstractFilter {};
+
+    class StandardCountingBloomFilter : public BloomFilterModels::StaticFilter {
         unique_ptr<Buckets> buckets; // Bucket array
         uint32_t m; // Filter size (number of buckets)
         uint32_t k; // Number of hash functions
@@ -42,8 +46,8 @@ namespace BloomFilterModels {
         uint32_t maxCapacity; // Maximum capacity of the filter
         double fpRate; // Target false-positive rate
 public:
-        StandardCoutingBloomFilter() {}
-        StandardCoutingBloomFilter(uint32_t n, 
+        StandardCountingBloomFilter() {}
+        StandardCountingBloomFilter(uint32_t n, 
                             uint8_t b, 
                             double fpRate,
                             uint32_t countExist = 0) :
@@ -56,11 +60,120 @@ public:
         {
         }
 
-        ~StandardCoutingBloomFilter() {}
+        // Returns the maximum capacity of the filter
+        uint32_t Capacity() const {
+            return maxCapacity;
+        }
+
+        // Returns the filter capacity
+        uint32_t Size() const {
+            return m;
+        }
+
+        // Returns the number of hash functions
+        uint32_t K() const {
+            return k;
+        }
+
+        // Returns the number of items in the filter
+        uint32_t Count() const {
+            return count;
+        }
+
+        // Returns the target false-positive rate
+        double FPrate() const {
+            return fpRate;
+        }
+
+        // Tests for membership of the data.
+        // Returns true if the data is probably a member, false otherwise.
+        bool Test(const std::vector<uint8_t>& data) const {
+            auto hashKernel = Utils::HashKernel(data, "murmur"); // Generate hash kernels
+            uint32_t lower = hashKernel.LowerBaseHash;
+            uint32_t upper = hashKernel.UpperBaseHash;
+
+            // Check if all hash function indices are set in the bucket array
+            for (uint32_t i = 0; i < k; ++i) {
+                if (buckets->Get(uint32_t((lower + upper * i) % m)) == 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Adds the data to the filter->
+        // Returns a reference to the filter for chaining.
+        StandardCountingBloomFilter& Add(const std::vector<uint8_t>& data) {
+            auto hashKernel = Utils::HashKernel(data, "murmur"); // Generate hash kernels
+            uint32_t lower = hashKernel.LowerBaseHash;
+            uint32_t upper = hashKernel.UpperBaseHash;
+
+            // Set the K bits in the bucket array
+            for (uint32_t i = 0; i < k; ++i) {
+                // cout << "cbf-Adding: " << uint32_t((lower + upper * i) % m) << endl;
+                buckets->Increment(uint32_t((lower + upper * i) % m), 1);
+            }
+
+            this->count++;
+            return *this;
+        }
+
+        // Tests for membership of the data and adds it to the filter if it doesn't exist.
+        // Returns true if the data was probably in the filter, false otherwise.
+        bool TestAndAdd(const std::vector<uint8_t>& data) {
+            auto hashKernel = Utils::HashKernel(data, "murmur"); // Generate hash kernels
+            uint32_t lower = hashKernel.LowerBaseHash;
+            uint32_t upper = hashKernel.UpperBaseHash;
+            bool member = true;
+
+            // Check if all hash function indices are set in the bucket array and set them if not
+            for (uint32_t i = 0; i < k; ++i) {
+                uint32_t index = uint32_t((lower + upper * i) % m);
+                if (buckets->Get(index) == 0) {
+                    member = false;
+                }
+                buckets->Increment(index, 1);
+            }
+
+            count++;
+            return member;
+        }
+
+        // Tests for membership of the data and removes it from the filter if it exists.
+        // Returns true if the data was probably in the filter, false otherwise.
+        bool TestAndRemove(const std::vector<uint8_t>& data) {
+            auto hashKernel = Utils::HashKernel(data, "murmur"); // Generate hash kernels
+            uint32_t lower = hashKernel.LowerBaseHash;
+            uint32_t upper = hashKernel.UpperBaseHash;
+            bool member = true;
+            std::vector<uint32_t> indices(k); // Store hash function indices
+
+            // Calculate hash function indices and check if all are set in the bucket array
+            for (uint32_t i = 0; i < k; ++i) {
+                indices[i] = uint32_t((lower + upper * i) % m);
+                if (buckets->Get(indices[i]) == 0) {
+                    member = false;
+                }
+            }
+
+            // If the data is probably in the filter, decrement the bucket values at the calculated indices
+            if (member) {
+                for (auto index : indices) {
+                    buckets->Increment(index, -1);
+                }
+                count--;
+            }
+
+            return member;
+        }
+
+        ~StandardCountingBloomFilter() {}
     };
 
     // CountingBloomFilter structure and methods
-    class CountingBloomFilter : public BloomFilterModels::AbstractFilter {
+    class CountingBloomFilter : public BloomFilterModels::StaticFilter {
         Buckets* buckets; // Bucket array
         uint32_t m; // Filter size (number of buckets)
         uint32_t k; // Number of hash functions
@@ -151,12 +264,6 @@ public:
             return *this;
         }
 
-        //@ unsupported
-        // Sets the hashing function used in the filter->
-        // void SetHash(HashAlgorithm* h) {
-        //     hash.reset(h); // Set the hash algorithm object
-        // }
-
         // Tests for membership of the data and adds it to the filter if it doesn't exist.
         // Returns true if the data was probably in the filter, false otherwise.
         bool TestAndAdd(const std::vector<uint8_t>& data) {
@@ -211,7 +318,7 @@ public:
     }; // end of CountingBloomFilter
 
     // CountingScalableBloomFilter structure and methods
-    class CountingScalableBloomFilter : public BloomFilterModels::AbstractFilter {
+    class CountingScalableBloomFilter : public BloomFilterModels::DynamicFilter {
         vector<shared_ptr<CountingBloomFilter>> filters;
         double r; // Tightening ratio
         double fp; // Target false-positive rate

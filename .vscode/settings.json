@@ -109,6 +109,9 @@
     "chrono": "cpp",
     "ratio": "cpp",
     "fstream": "cpp",
-    "sstream": "cpp"
+    "sstream": "cpp",
+    "map": "cpp",
+    "set": "cpp",
+    "iomanip": "cpp"
   }
 }
