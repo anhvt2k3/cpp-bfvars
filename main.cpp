@@ -280,7 +280,9 @@ int main()
     StandardCountingBloomFilter scbf;
     CountingScalableBloomFilter csbf;
     StandardCountingScalableBloomFilter scsbf;
-    vector<AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf};
+    DynamicBloomFilter dbf(400000);
+    DynamicStdCountingBloomFilter dsbf(400000);
+    vector<AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf, &dbf, &dsbf};
     for (auto filter : filters) {
         cout << "Filter: " << filter->getFilterName() << endl;
         Tester tester(*filter);

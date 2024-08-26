@@ -8,6 +8,7 @@
 #include <openssl/sha.h>
 #include "./smhasher-master/src/MurmurHash1.cpp"
 #include "./smhasher-master/src/MurmurHash2.cpp"
+#include "./smhasher-master/src/MurmurHash3.cpp"
 
 namespace BloomFilterApp
 {
@@ -47,8 +48,15 @@ namespace BloomFilterApp
             if (algorithm == "murmur")
             {
                 uint32_t hash[2];
-                hash[0] = MurmurHash1(data.data(), data.size(), 0);
-                hash[1] = MurmurHash2(data.data(), data.size(), 0);
+                // @Combo C (best)
+                hash[1] = MurmurHash1(data.data(), data.size(), 0);
+                MurmurHash3_x86_32(data.data(), data.size(), 0, &hash[0]);
+                // @Combo B
+                // hash[0] = MurmurHash2(data.data(), data.size(), 0);
+                // MurmurHash3_x86_32(data.data(), data.size(), 0, &hash[1]);
+                // @Combo A
+                // hash[1] = MurmurHash1(data.data(), data.size(), 0);
+                // hash[0] = MurmurHash2(data.data(), data.size(), 0);
                 return HashKernelReturnValue::Create(hash[0], hash[1]);
             }
             std::vector<uint8_t> hashBytes(SHA256_DIGEST_LENGTH);
