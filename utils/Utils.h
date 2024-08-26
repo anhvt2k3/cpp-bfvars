@@ -6,7 +6,8 @@
 #include <vector>
 
 #include <openssl/sha.h>
-#include "./smhasher-master/src/Hashes.h"
+#include "./smhasher-master/src/MurmurHash1.cpp"
+#include "./smhasher-master/src/MurmurHash2.cpp"
 
 namespace BloomFilterApp
 {

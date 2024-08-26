@@ -194,82 +194,7 @@ public:
         return result;
     }
 
-    void DynamicFilterTestsuite()
-    {
-        auto keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3), readCSV(set4));
-        auto nonkeys = readCSV(set5);
-        cout << endl;
-        auto elapsed = testAdding(keys).count();
-        cout << "Adding Elapsed time: " << elapsed << "s" << endl;
-        cout << endl;
-
-        // #      Test = 800k keys       .. 200k not keys
-        cout << endl;
-        auto adjacent_set1 = mergeVectors(keys, nonkeys);
-        elapsed = testCheck(adjacent_set1).count();
-        cout << "Check Elapsed time: " << elapsed << "s" << endl;
-        cout << endl;
-
-        // #      Test = 200k not keys   .. 800k keys
-        cout << endl;
-        auto adjacent_set2 = mergeVectors(nonkeys, keys);
-        elapsed = testCheck(adjacent_set2).count();
-        cout << "Check Elapsed time: " << elapsed << "s" << endl;
-        cout << endl;
-
-        //? More details with Test = set1 . set5 . set2 . set3 . set4
-        cout << endl;
-        cout << "   ** 1M entries test for 200k(keys) . 200k(nonkeys) . 600k(keys) **" << endl;
-        Result result;
-
-        long long int fpCount = 0;
-        long long int testCount = 0;
-        auto time = chrono::duration<double>(0);
-
-        result = TestFP(readCSV(set1), true);
-        fpCount += result.FP.size();
-        cout << "FP count for set1: " << result.FP.size() << endl;
-        testCount += result.testCount;
-        time += result.elapsed;
-
-        result = TestFP(readCSV(set5), false);
-        fpCount += result.FP.size();
-        cout << "FP count for set5: " << result.FP.size() << endl;
-        testCount += result.testCount;
-        time += result.elapsed;
-
-        result = TestFP(readCSV(set2), true);
-        fpCount += result.FP.size();
-        cout << "FP count for set2: " << result.FP.size() << endl;
-        testCount += result.testCount;
-        time += result.elapsed;
-
-        result = TestFP(readCSV(set3), true);
-        fpCount += result.FP.size();
-        cout << "FP count for set3: " << result.FP.size() << endl;
-        testCount += result.testCount;
-        time += result.elapsed;
-
-        result = TestFP(readCSV(set4), true);
-        fpCount += result.FP.size();
-        cout << "FP count for set4: " << result.FP.size() << endl;
-        testCount += result.testCount;
-        time += result.elapsed;
-
-        float accuracy = 1.0f - static_cast<float>(fpCount) / static_cast<float>(testCount);
-        cout << fixed << setprecision(6);
-
-        cout << "False Positive Count: " << fpCount << " -- Accuracy: " << accuracy << endl;
-        cout << "Total Test Count: " << testCount << endl;
-        cout << "Total Elapsed Time: " << time.count() << "s" << endl;
-        cout << endl;
-
-        cout << getConfig() << endl;
-
-        cout << "Test done running!" << endl;
-    }
-
-    void StaticFilterTestsuite()
+    void Testsuit800keys()
     {
         
         cout << endl;
@@ -351,5 +276,19 @@ public:
 int main()
 {
     StandardBloomFilter bf;
+    CountingBloomFilter cbf;
+    StandardCountingBloomFilter scbf;
+    CountingScalableBloomFilter csbf;
+    StandardCountingScalableBloomFilter scsbf;
+    vector<AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf};
+    for (auto filter : filters) {
+        cout << "Filter: " << filter->getFilterName() << endl;
+        Tester tester(*filter);
+        tester.initTester();
+        tester.getEntrySize();
+        tester.Testsuit800keys();
+        cout << "-------------END-------------" << endl;
+        cout << endl;
+    }
     return 0;
 }
