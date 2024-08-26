@@ -1,0 +1,5 @@
+#include "BaseBF.h"
+#include "BF.h"
+#include "CountingBF.h"
+#include "DynamicBF.h"
+#include "ScalableBF.h"

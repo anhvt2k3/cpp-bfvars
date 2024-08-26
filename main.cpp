@@ -6,9 +6,9 @@
 #include <chrono>
 #include <iomanip>
 
-#include "csbf/CountingScalableBloomFilter.h"
-using namespace BloomFilterModels;
+#include "csbf/filters.h"
 using namespace std;
+using namespace BloomFilterModels;
 
 string setall = "./data/dataset0.csv"; //# 0 => all possible values
 string set1 = "./data/dataset1.csv"; //# 1 => values: 0 -> 200k
@@ -80,7 +80,7 @@ class Result
 
 class Tester {
 public:
-    AbstractFilter& bf;
+    BloomFilterModels::AbstractFilter& bf;
     // chrono::duration<double> elapsed;
     vector<string> keys;
 
@@ -97,16 +97,16 @@ public:
         return bytes;
     }
 
-    Tester(AbstractFilter& bf) : bf(bf) {
+    Tester(BloomFilterModels::AbstractFilter& bf) : bf(bf) {
         cout << "Tester object created!" << endl;
     }
 
     void initTester() {
         this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3), readCSV(set4));
         this->nonkeys = readCSV(set5);
-        if (StaticFilter* sf = dynamic_cast<StaticFilter*>(&bf)) {
+        if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
             (this->bf).Init(keys.size(), 4, Defaults::FALSE_POSITIVE_RATE);
-        } else if (DynamicFilter* df = dynamic_cast<DynamicFilter*>(&bf)) {
+        } else if (BloomFilterModels::DynamicFilter* df = dynamic_cast<BloomFilterModels::DynamicFilter*>(&bf)) {
             cout << "DynamicFilter object initialized!" << endl;
         }
     }
@@ -282,7 +282,7 @@ int main()
     StandardCountingScalableBloomFilter scsbf;
     DynamicBloomFilter dbf(400000);
     DynamicStdCountingBloomFilter dsbf(400000);
-    vector<AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf, &dbf, &dsbf};
+    vector<BloomFilterModels::AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf, &dbf, &dsbf};
     for (auto filter : filters) {
         cout << "Filter: " << filter->getFilterName() << endl;
         Tester tester(*filter);

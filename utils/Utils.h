@@ -1,10 +1,15 @@
+#pragma once
 #include <cmath>
 #include <cstdint>
 #include <limits>
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <list>
+#include <ctime>
+#include <memory>
 
+#include "../csbf/Buckets.h"
 #include <openssl/sha.h>
 #include "./smhasher-master/src/MurmurHash1.cpp"
 #include "./smhasher-master/src/MurmurHash2.cpp"
