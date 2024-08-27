@@ -18,7 +18,7 @@ namespace BloomFilterModels {
         virtual AbstractFilter& Add(const std::vector<uint8_t>& data) = 0;
         // virtual AbstractFilter& Reset() = 0;
     // # Specialized methods
-        virtual void Init(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) {
+        virtual void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) {
             cout << "Unsupported method: Init" << endl;
         };
         virtual string getConfigure() {
@@ -39,7 +39,8 @@ protected:
         uint32_t maxCapacity; // Maximum capacity of the filter
         double fpRate; // Target false-positive rate
         
-        void Init(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) {
+public:
+        virtual void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
             this->buckets = make_unique<Buckets>(BloomFilterApp::Utils::OptimalMCounting(n, fpRate), b);
             this->m = BloomFilterApp::Utils::OptimalMCounting(n, fpRate);
             this->k = BloomFilterApp::Utils::OptimalKCounting(fpRate);
@@ -48,7 +49,6 @@ protected:
             this->fpRate = fpRate;
         }
 
-public:
         string getConfigure() {
             string res = "_ _ _ Filter Configuration _ _ _\n";
             res += "Filter Size: " + to_string(Size()) + "\n";
@@ -56,6 +56,9 @@ public:
             res += "Number of Hash Functions: " + to_string(K()) + "\n";
             res += "False Positive Rate: " + to_string(FPrate()) + "\n";
             res += "Number of Items Added: " + to_string(Count()) + "\n";
+            res += "_ _ _ Buckets Configuration _ _ _\n";
+            res += "Bucket Size per: " + to_string(buckets->bucketSize) + " (Max value: " + to_string(buckets->Max) + ")" "\n";
+            res += "Bucket Count: " + to_string(buckets->count) + "\n";
             return res;
         }
         StaticFilter() {}

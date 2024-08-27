@@ -105,7 +105,8 @@ public:
         this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3), readCSV(set4));
         this->nonkeys = readCSV(set5);
         if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
-            (this->bf).Init(keys.size(), 4, Defaults::FALSE_POSITIVE_RATE);
+            (this->bf).Init(keys.size());
+            cout << "StaticFilter object initialized!" << endl;
         } else if (BloomFilterModels::DynamicFilter* df = dynamic_cast<BloomFilterModels::DynamicFilter*>(&bf)) {
             cout << "DynamicFilter object initialized!" << endl;
         }

@@ -24,3 +24,4 @@ smhasher-master/
 # Ignore compiled output
 out/
 .log
+log.txt

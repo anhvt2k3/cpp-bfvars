@@ -12,6 +12,10 @@ public:
             : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
         {}
 
+        void Init(uint32_t n, uint8_t b = 4, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
+            StaticFilter::Init(n, 4, fpRate, countExist);
+        }
+
         string getFilterName() const {
             return "StandardCountingBloomFilter";
         }
@@ -153,6 +157,10 @@ public:
         CountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
             : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
         {}
+
+        void Init(uint32_t n, uint8_t b = 4, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0)  {
+            StaticFilter::Init(n, 4, fpRate, countExist);
+        }
 
         string getFilterName() const {
             return "CountingBloomFilter";

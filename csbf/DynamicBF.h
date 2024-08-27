@@ -33,13 +33,11 @@ public:
             res += "Current filter size: " + std::__cxx11::to_string(Size()) + "\n";
             res += "CBF Scope \n";
             res += "Number of filters: " + std::__cxx11::to_string(filters.size()) + "\n";
+            
             for (int i=0; i<filters.size(); i++) {
                 auto filter = filters[i];
                 res += "_ _ _ Filter " + std::__cxx11::to_string(i) + " _ _ _\n";
-                res += "Filter capacity: " + std::__cxx11::to_string(filter->Capacity()) + "\n";
-                res += "Filter size: " + std::__cxx11::to_string(filter->Size()) + "\n";
-                res += "Filter count: " + std::__cxx11::to_string(filter->Count()) + "\n";
-                res += "Filter K: " + std::__cxx11::to_string(filter->K()) + "\n";
+                res += filter->getConfigure();
             }
             return res;
         }
@@ -166,10 +164,7 @@ public:
             for (int i=0; i<filters.size(); i++) {
                 auto filter = filters[i];
                 res += "_ _ _ Filter " + std::__cxx11::to_string(i) + " _ _ _\n";
-                res += "Filter capacity: " + std::__cxx11::to_string(filter->Capacity()) + "\n";
-                res += "Filter size: " + std::__cxx11::to_string(filter->Size()) + "\n";
-                res += "Filter count: " + std::__cxx11::to_string(filter->Count()) + "\n";
-                res += "Filter K: " + std::__cxx11::to_string(filter->K()) + "\n";
+                res += filter->getConfigure();
             }
             return res;
         }
