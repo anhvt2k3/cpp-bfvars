@@ -6,7 +6,7 @@
 #include <chrono>
 #include <iomanip>
 
-#include "csbf/filters.h"
+#include "csbf/index.h"
 using namespace std;
 using namespace BloomFilterModels;
 
@@ -195,7 +195,7 @@ public:
         return result;
     }
 
-    void Testsuit800keys()
+    void Testsuite800keys()
     {
         
         cout << endl;
@@ -276,20 +276,23 @@ public:
 
 int main()
 {
-    StandardBloomFilter bf;
-    CountingBloomFilter cbf;
-    StandardCountingBloomFilter scbf;
-    CountingScalableBloomFilter csbf;
-    StandardCountingScalableBloomFilter scsbf;
-    DynamicBloomFilter dbf(400000);
-    DynamicStdCountingBloomFilter dsbf(400000);
-    vector<BloomFilterModels::AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf, &dbf, &dsbf};
+    vector<BloomFilterModels::AbstractFilter*> filters = {};
+    DeletableBloomFilter dlbf; filters.push_back(&dlbf);
+    ScalableDeletableBloomFilter sdlbf; filters.push_back(&sdlbf);
+    // StandardBloomFilter bf; filters.push_back(&bf);
+    // CountingBloomFilter cbf; filters.push_back(&cbf);
+    // StandardCountingBloomFilter scbf; filters.push_back(&scbf);
+    // CountingScalableBloomFilter csbf; filters.push_back(&csbf);
+    // StandardCountingScalableBloomFilter scsbf; filters.push_back(&scsbf);
+    // DynamicBloomFilter dbf(400000); filters.push_back(&dbf);
+    // DynamicStdCountingBloomFilter dsbf(400000); filters.push_back(&dsbf);
+    // vector<BloomFilterModels::AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf, &dbf, &dsbf};
     for (auto filter : filters) {
         cout << "Filter: " << filter->getFilterName() << endl;
         Tester tester(*filter);
         tester.initTester();
         tester.getEntrySize();
-        tester.Testsuit800keys();
+        tester.Testsuite800keys();
         cout << "-------------END-------------" << endl;
         cout << endl;
     }

@@ -3,3 +3,4 @@
 #include "CountingBF.h"
 #include "DynamicBF.h"
 #include "ScalableBF.h"
+#include "DelBF.h"

@@ -6,8 +6,6 @@ using namespace std;
 namespace BloomFilterModels {
 
     class DeletableBloomFilter : public StaticFilter {
-        //todo 1. Store a Bucket-array to store the collision-freeness of regions in the BF
-        //todo 2. Store the size of each region
         unique_ptr<Buckets> collisionFree; // Bucket array
 public:
         DeletableBloomFilter() {}
@@ -16,10 +14,12 @@ public:
                             double fpRate, 
                             uint32_t countExist = 0) 
             : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
-        {}
+        {
+        }
 
         void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
             StaticFilter::Init(n, 1, fpRate, countExist);
+            collisionFree = make_unique<Buckets>(uint32_t(BloomFilterApp::Utils::OptimalMCounting(n, fpRate)/Defaults::COLLIDE_REGION_SIZE), 1);
         }
 
         string getFilterName() const {
@@ -60,8 +60,7 @@ public:
 
             // Check if all hash function indices are set in the bucket array
             for (uint32_t i = 0; i < k; ++i) {
-                if (buckets->Get(uint32_t((lower + upper * i) % m)) == 0)
-                {
+                if (buckets->Get(uint32_t((lower + upper * i) % m)) == 0) {
                     return false;
                 }
             }
@@ -81,7 +80,7 @@ public:
                 // cout << "cbf-Adding: " << uint32_t((lower + upper * i) % m) << endl;
                 uint32_t bucketIndex = uint32_t((lower + upper * i) % m);
                 if (buckets->Get(bucketIndex)) {
-                    collisionFree->Set(bucketIndex/Defaults::COLLIDE_REGION_SIZE, 1);
+                    collisionFree->Set(uint32_t(bucketIndex/Defaults::COLLIDE_REGION_SIZE), 1);
                 }
                 buckets->Set(bucketIndex, 1);
             }
@@ -90,7 +89,7 @@ public:
             return *this;
         }
 
-        bool TestAndRemove(const std::vector<uint8_t>& data) {
+        bool Remove(const std::vector<uint8_t>& data) {
             auto hashKernel = BloomFilterApp::Utils::HashKernel(data, "murmur"); // Generate hash kernels
             uint32_t lower = hashKernel.LowerBaseHash;
             uint32_t upper = hashKernel.UpperBaseHash;
@@ -98,14 +97,19 @@ public:
             bool removable = 0;
             for (uint32_t i = 0; i < k; ++i) {
                 uint32_t bucketIndex = uint32_t((lower + upper * i) % m);
-                if (collisionFree->Get(bucketIndex/Defaults::COLLIDE_REGION_SIZE) == 0) {
+                if (collisionFree->Get(uint32_t(bucketIndex/Defaults::COLLIDE_REGION_SIZE)) == 0) {
                     buckets->Set(bucketIndex, 0);
                     removable = 1;
                 }
+            //@ if all buckets is not collision-free => non-removable
             }
             return removable;
         }
-            
+
+        bool TestAndRemove(const vector<uint8_t>& data) {
+            if (Test(data)) return Remove(data);
+            else return false;
+        }
 
         ~DeletableBloomFilter() {}
     };

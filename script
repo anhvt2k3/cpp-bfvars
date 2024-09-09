@@ -1,6 +1,6 @@
 
 `note`: "-lssl -lcrypto" flag must follow with the *.cpp file
 
-g++ -o main main.cpp -lssl -lcrypto; ./main.exe > .log
+g++ -o main main.cpp -lssl -lcrypto; ./main.exe > log.txt
 g++ -o main main.cpp -lssl -lcrypto; ./main.exe 
 g++ -o test test.cpp; ./test.exe
