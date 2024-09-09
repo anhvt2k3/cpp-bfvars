@@ -38,7 +38,7 @@ class Buckets {
       cout << "Invalid argument: " << e.what() << endl;
       return;
     }
-    cout << "Cells are correctly initialized!" << endl;
+    // cout << "Cells are correctly initialized!" << endl;
   }
   // Get the maximum value a bucket can hold
   uint32_t MaxBucketValue() { return this->Max; }

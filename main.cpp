@@ -277,7 +277,7 @@ public:
 int main()
 {
     vector<BloomFilterModels::AbstractFilter*> filters = {};
-    DeletableBloomFilter dlbf; filters.push_back(&dlbf);
+    // DeletableBloomFilter dlbf; filters.push_back(&dlbf);
     ScalableDeletableBloomFilter sdlbf; filters.push_back(&sdlbf);
     // StandardBloomFilter bf; filters.push_back(&bf);
     // CountingBloomFilter cbf; filters.push_back(&cbf);

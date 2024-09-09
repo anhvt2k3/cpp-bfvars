@@ -15,6 +15,7 @@ public:
                             uint32_t countExist = 0) 
             : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
         {
+            collisionFree = make_unique<Buckets>(uint32_t(BloomFilterApp::Utils::OptimalMCounting(n, fpRate)/Defaults::COLLIDE_REGION_SIZE), 1);
         }
 
         void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
