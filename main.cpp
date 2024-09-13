@@ -279,6 +279,7 @@ int main()
     vector<BloomFilterModels::AbstractFilter*> filters = {};
     // DeletableBloomFilter dlbf; filters.push_back(&dlbf);
     ScalableDeletableBloomFilter sdlbf; filters.push_back(&sdlbf);
+    OneHashingBloomFilter ohbf; filters.push_back(&ohbf);
     // StandardBloomFilter bf; filters.push_back(&bf);
     // CountingBloomFilter cbf; filters.push_back(&cbf);
     // StandardCountingBloomFilter scbf; filters.push_back(&scbf);

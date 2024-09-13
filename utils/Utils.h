@@ -64,13 +64,26 @@ namespace BloomFilterApp
                 // hash[0] = MurmurHash2(data.data(), data.size(), 0);
                 return HashKernelReturnValue::Create(hash[0], hash[1]);
             }
-            std::vector<uint8_t> hashBytes(SHA256_DIGEST_LENGTH);
-            SHA256_CTX sha256;
-            SHA256_Init(&sha256);
-            SHA256_Update(&sha256, data.data(), data.size());
-            SHA256_Final(hashBytes.data(), &sha256);
+            else if (algorithm == "single")
+            {
+                uint32_t hash[2];
+                MurmurHash3_x86_32(data.data(), data.size(), 0, &hash[0]);
+                return HashKernelReturnValue::Create(hash[0], 0);
+            }
+            else if (algorithm == "sha256")
+            {
+                std::vector<uint8_t> hashBytes(SHA256_DIGEST_LENGTH);
+                SHA256_CTX sha256;
+                SHA256_Init(&sha256);
+                SHA256_Update(&sha256, data.data(), data.size());
+                SHA256_Final(hashBytes.data(), &sha256);
 
-            return HashKernelFromHashBytes(hashBytes);
+                return HashKernelFromHashBytes(hashBytes);
+            }
+            else
+            {
+                throw std::invalid_argument("Invalid algorithm");
+            }
         }
 
         static HashKernelReturnValue HashKernelFromHashBytes(const std::vector<uint8_t>& hashBytes)
