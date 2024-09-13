@@ -1,4 +1,5 @@
-# This repository is dedicated to recreate recognized Bloom Filter variants in C++ with evaluations provided by a Bus ticket checking system.
+# Bloom Filter variants in C++
+## This repository is dedicated to recreate recognized Bloom Filter variants in C++ with evaluations provided by a Bus ticket checking system.
 Current supporting variants:
 1. Standard Bloom Filter
 2. Counting Bloom Filter
