@@ -9,11 +9,11 @@ namespace BloomFilterModels {
 public:
         StandardBloomFilter() {}
         StandardBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
-            : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
+            : StaticFilter(n, Defaults::BUCKET_SIZE, fpRate, countExist)  // Call the base class constructor directly
         {}
 
-        void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0)  {
-            StaticFilter::Init(n, 1, fpRate, countExist);
+        void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0)  {
+            StaticFilter::Init(n, Defaults::BUCKET_SIZE, fpRate, countExist);
         }
 
         string getFilterName() const {

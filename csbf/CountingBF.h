@@ -9,11 +9,11 @@ namespace BloomFilterModels {
 public:
         StandardCountingBloomFilter() {}
         StandardCountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
-            : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
+            : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist)  // Call the base class constructor directly
         {}
 
-        void Init(uint32_t n, uint8_t b = 4, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
-            StaticFilter::Init(n, 4, fpRate, countExist);
+        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
+            StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist);
         }
 
         string getFilterName() const {
@@ -155,11 +155,11 @@ public:
 public:
         CountingBloomFilter() {}
         CountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
-            : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
+            : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist)  // Call the base class constructor directly
         {}
 
-        void Init(uint32_t n, uint8_t b = 4, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0)  {
-            StaticFilter::Init(n, 4, fpRate, countExist);
+        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0)  {
+            StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist);
         }
 
         string getFilterName() const {

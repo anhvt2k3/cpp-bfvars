@@ -2,13 +2,16 @@
 #include <cstdlib>
 using namespace std;
 class Buckets {
- public:
+public:
   // Data buffer to store the buckets
   uint8_t* Data;
+  
   // Size of each bucket in bits
   uint32_t bucketSize;
+
   // Maximum value a bucket can hold
   uint32_t Max;
+
   // Number of buckets
   uint32_t count;
   
@@ -25,6 +28,13 @@ class Buckets {
     this->Data = (uint8_t*)calloc(count, dataSize);
     
     this->recheck_data();
+  }
+
+  Buckets initData(const uint32_t data[], uint32_t n) {
+    for (uint32_t i = 0; i < n; i++) {
+      Set(i, data[i]);
+    }
+    return *this;
   }
 
   void recheck_data() const {

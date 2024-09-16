@@ -2,6 +2,7 @@
 
 namespace Defaults {
     const uint8_t BUCKET_SIZE = 1;
+    const uint8_t CBF_BUCKET_SIZE = 4;
     const double FALSE_POSITIVE_RATE = 0.01;
     
     //# ScalableBF constants
