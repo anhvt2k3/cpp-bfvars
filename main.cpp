@@ -277,16 +277,18 @@ public:
 int main()
 {
     vector<BloomFilterModels::AbstractFilter*> filters = {};
-    // DeletableBloomFilter dlbf; filters.push_back(&dlbf);
-    ScalableDeletableBloomFilter sdlbf; filters.push_back(&sdlbf);
+    VariableIncrementBloomFilter vibf; filters.push_back(&vibf);
     OneHashingBloomFilter ohbf; filters.push_back(&ohbf);
-    // StandardBloomFilter bf; filters.push_back(&bf);
-    // CountingBloomFilter cbf; filters.push_back(&cbf);
-    // StandardCountingBloomFilter scbf; filters.push_back(&scbf);
-    // CountingScalableBloomFilter csbf; filters.push_back(&csbf);
+    DeletableBloomFilter dlbf; filters.push_back(&dlbf);
+    StandardBloomFilter bf; filters.push_back(&bf);
+    StandardCountingBloomFilter scbf; filters.push_back(&scbf);
+    
     // StandardCountingScalableBloomFilter scsbf; filters.push_back(&scsbf);
-    // DynamicBloomFilter dbf(400000); filters.push_back(&dbf);
     // DynamicStdCountingBloomFilter dsbf(400000); filters.push_back(&dsbf);
+    // CountingBloomFilter cbf; filters.push_back(&cbf);
+    // ScalableDeletableBloomFilter sdlbf; filters.push_back(&sdlbf);
+    // CountingScalableBloomFilter csbf; filters.push_back(&csbf);
+    // DynamicBloomFilter dbf(400000); filters.push_back(&dbf);
     // vector<BloomFilterModels::AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf, &dbf, &dsbf};
     for (auto filter : filters) {
         cout << "Filter: " << filter->getFilterName() << endl;

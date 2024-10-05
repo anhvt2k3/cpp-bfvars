@@ -1,13 +1,7 @@
 #include "BaseBF.h"
 #include "./CountingBF.h"
 
-using namespace std;
 namespace BloomFilterModels {
-
-class VlCBF : public StaticFilter {
-
-    class BhSequenceBloomFilter : public StaticFilter {};
-
     class VariableIncrementBloomFilter : public StaticFilter {
         unique_ptr<Buckets> dL;
         void initDL(uint32_t i)
@@ -15,23 +9,24 @@ class VlCBF : public StaticFilter {
             uint32_t L = 1 << i;
             uint32_t dLsize = 2L - 1 - L + 1;
             uint32_t cellsize = i + 1; // ensure enough bit for 2L-1
-            dL = make_unique<Buckets>(dLsize, cellsize);
+            this->dL = make_unique<Buckets>(dLsize, cellsize);
             for (uint32_t j = 0; j < dLsize; j++)
                 dL->Set(j, L++);
         };
 public:
         VariableIncrementBloomFilter() {}
-
         // L is a number of 2^i for i>=2
-        VariableIncrementBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t i = 2, uint32_t countExist = 0) 
+        VariableIncrementBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
             : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist)  // Call the base class constructor directly
         {
+            uint32_t i = 2;
             initDL(i);
         }
 
         // L is a number of 2^i for i>=2
-        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t i = 2, uint32_t countExist = 0)  {
+        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
             StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist);
+            uint32_t i = 2;
             initDL(i);
         }
 
@@ -144,7 +139,11 @@ public:
         }
 
         ~VariableIncrementBloomFilter() {}
-    };
-};
-}
+
     
+};
+    class BhSequenceBloomFitler : public StaticFilter {
+        
+};
+
+};
