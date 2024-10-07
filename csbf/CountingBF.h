@@ -5,10 +5,10 @@
 using namespace std;
 namespace BloomFilterModels {
 
-    class StandardCountingBloomFilter : public StaticFilter {
+    class CountingBloomFilter : public StaticFilter {
 public:
-        StandardCountingBloomFilter() {}
-        StandardCountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
+        CountingBloomFilter() {}
+        CountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
             : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist)  // Call the base class constructor directly
         {}
 
@@ -17,7 +17,7 @@ public:
         }
 
         string getFilterName() const {
-            return "StandardCountingBloomFilter";
+            return "CountingBloomFilter";
         }
 
         // Returns the maximum capacity of the filter
@@ -65,7 +65,7 @@ public:
 
         // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
-        StandardCountingBloomFilter& Add(const std::vector<uint8_t>& data) {
+        CountingBloomFilter& Add(const std::vector<uint8_t>& data) {
             auto hashKernel = BloomFilterApp::Utils::HashKernel(data, "murmur"); // Generate hash kernels
             uint32_t lower = hashKernel.LowerBaseHash;
             uint32_t upper = hashKernel.UpperBaseHash;
@@ -146,15 +146,15 @@ public:
             return true;
         }
 
-        ~StandardCountingBloomFilter() {}
+        ~CountingBloomFilter() {}
     };
 
 
-    class CountingBloomFilter : public StaticFilter {
+    class CryptoCountingBloomFilter : public StaticFilter {
         // std::unique_ptr<HashAlgorithm> hash; // Hash algorithm object
 public:
-        CountingBloomFilter() {}
-        CountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
+        CryptoCountingBloomFilter() {}
+        CryptoCountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
             : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist)  // Call the base class constructor directly
         {}
 
@@ -163,7 +163,7 @@ public:
         }
 
         string getFilterName() const {
-            return "CountingBloomFilter";
+            return "CryptoCountingBloomFilter";
         }
 
         // Returns the maximum capacity of the filter
@@ -211,7 +211,7 @@ public:
 
         // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
-        CountingBloomFilter& Add(const std::vector<uint8_t>& data) {
+        CryptoCountingBloomFilter& Add(const std::vector<uint8_t>& data) {
             auto hashKernel = BloomFilterApp::Utils::HashKernel(data); // Generate hash kernels
             uint32_t lower = hashKernel.LowerBaseHash;
             uint32_t upper = hashKernel.UpperBaseHash;
@@ -228,7 +228,7 @@ public:
 
         // Resets the filter to its original state.
         // Returns a reference to the filter for chaining.
-        CountingBloomFilter& Reset() {
+        CryptoCountingBloomFilter& Reset() {
             buckets->Reset(); // Clear bucket array
             count = 0; // Reset count
             return *this;
@@ -299,8 +299,8 @@ public:
             return true;
         }
 
-        ~CountingBloomFilter() {
+        ~CryptoCountingBloomFilter() {
         }
-    }; // end of CountingBloomFilter
+    }; // end of CryptoCountingBloomFilter
 
 }

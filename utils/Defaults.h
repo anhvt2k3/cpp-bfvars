@@ -5,6 +5,9 @@ namespace Defaults {
     const uint8_t CBF_BUCKET_SIZE = 4;
     const double FALSE_POSITIVE_RATE = 0.01;
     
+    //# VariableIncrementBF constants
+    const uint32_t MIN_INCREMENT = 2;
+
     //# ScalableBF constants
     const double FILL_RATIO = 0.8;
     const uint32_t SCALABLE_GROWTH = 2;

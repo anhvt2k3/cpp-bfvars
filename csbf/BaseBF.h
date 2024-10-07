@@ -21,6 +21,9 @@ namespace BloomFilterModels {
         virtual void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) {
             cout << "Unsupported method: Init" << endl;
         };
+        virtual void Init(vector<vector<uint8_t>> data, uint32_t countExist = 0) {
+            cout << "Unsupported method: Init" << endl;
+        }
         virtual string getConfigure() {
             return "Unsupported method: getConfigure";
         };

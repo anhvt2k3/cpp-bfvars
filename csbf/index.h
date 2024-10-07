@@ -4,6 +4,7 @@
 #include "OHBF.h"
 #include "Vl-CBF.h"
 #include "DelBF.h"
+#include "XorFilter.h"
 
 #include "CountingBF.h"
 #include "DynamicBF.h"

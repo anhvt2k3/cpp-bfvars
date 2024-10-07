@@ -7,7 +7,7 @@ namespace BloomFilterModels {
         void initDL(uint32_t i)
         {
             uint32_t L = 1 << i;
-            uint32_t dLsize = 2L - 1 - L + 1;
+            uint32_t dLsize = (2*L - 1) - (L) + 1;
             uint32_t cellsize = i + 1; // ensure enough bit for 2L-1
             this->dL = make_unique<Buckets>(dLsize, cellsize);
             for (uint32_t j = 0; j < dLsize; j++)
@@ -19,15 +19,13 @@ public:
         VariableIncrementBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
             : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist)  // Call the base class constructor directly
         {
-            uint32_t i = 2;
-            initDL(i);
+            initDL(Defaults::MIN_INCREMENT);
         }
 
         // L is a number of 2^i for i>=2
         void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
             StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist);
-            uint32_t i = 2;
-            initDL(i);
+            initDL(Defaults::MIN_INCREMENT);
         }
 
         string getFilterName() const {
@@ -72,7 +70,7 @@ public:
                 uint32_t gi = uint32_t((upper + lower * i) % (dL->count) );
                 uint32_t vgi = dL->Get(gi);
                 uint32_t c = buckets->Get(hi);
-                if (c - vgi != 0 || c - vgi < dL->Get(0))
+                if (c - vgi != 0 && c - vgi < dL->Get(0))
                 {
                     return false;
                 }

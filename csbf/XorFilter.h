@@ -35,7 +35,7 @@ public:
         uint32_t lower = hashKernel.LowerBaseHash;
         uint32_t upper = hashKernel.UpperBaseHash;
         for (int i = 0; i < 3; i++) {
-            hv[i] = lower + upper * h[i] % m;
+            hv[i] = ( lower + upper * h[i] ) % m;
         }
         return hv;
     };
@@ -50,7 +50,7 @@ public:
 
         
         auto _map = [&](const std::vector<vector<uint8_t>> data) -> bool {
-            vector<vector<vector<uint8_t>>> H; //* array of keys
+            vector<vector<vector<uint8_t>>> H(m); //* array of keys
             pairs.clear();
             for (auto key : data)
             {
@@ -93,7 +93,7 @@ public:
             }
         };
         
-        while (_map(data)) {
+        while (!_map(data)) {
             h[0] += 1; h[1] += 1; h[2] += 1;
         }
         this->buckets = make_unique<Buckets>(m, sizeof(std::uint8_t));
@@ -137,6 +137,12 @@ public:
     bool Test(const std::vector<uint8_t>& data) const {
         uint32_t* h_ = _hash(data);
         return fingerprint(data) == buckets->Get(h_[0]) ^ buckets->Get(h_[1]) ^ buckets->Get(h_[2]);
+    }
+
+    // Adds the data to the filter.
+    XorFilter& Add(const std::vector<uint8_t>& data) {
+        cout << "Unsupported method: Add" << endl;
+        return *this;
     }
 
     ~XorFilter() {}
