@@ -20,6 +20,10 @@ public:
             return "StandardBloomFilter";
         }
 
+        string getFilterCode() const {
+            return "StdBF";
+        }
+
         // Returns the maximum capacity of the filter
         uint32_t Capacity() const {
             return maxCapacity;

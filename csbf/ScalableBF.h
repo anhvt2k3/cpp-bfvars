@@ -36,6 +36,10 @@ public:
         return "CountingScalableBloomFilter";
     }
 
+    string getFilterCode() const {
+        return "CSBF";
+    }
+
     std::string getConfigure() {
         std::string res = "_ _ _ CSBF Scope _ _ _ \n";
         res += "Tightening-ratio: " + std::__cxx11::to_string(r) + "\n";
@@ -161,11 +165,11 @@ public:
 
 };
     
-    class CountingScalableBloomFilter : public DynamicFilter {
-        vector<shared_ptr<CountingBloomFilter>> filters;
+    class CryptoCountingScalableBloomFilter : public DynamicFilter {
+        vector<shared_ptr<CryptoCountingBloomFilter>> filters;
         double r; // Tightening ratio
         double fp; // Target false-positive rate
-        uint32_t p; // Maximum item count for each CountingBloomFilter
+        uint32_t p; // Maximum item count for each CryptoCountingBloomFilter
         uint32_t s; // Scalable growth factor
         // time_t syncDate; // Synchronization date
 
@@ -175,12 +179,12 @@ public:
             double fpRate = fp * pow(r, filters.size());
             uint32_t capacity = p * pow(s, filters.size());
             
-            filters.push_back(make_shared<CountingBloomFilter>(capacity, 4, fpRate));
+            filters.push_back(make_shared<CryptoCountingBloomFilter>(capacity, 4, fpRate));
             // cout << "Filter added " << filters.size()  << " "<< newFilter->Size() << endl;
             return 0;
         }
     public:
-        CountingScalableBloomFilter() : r   (Defaults::FILL_RATIO),
+        CryptoCountingScalableBloomFilter() : r   (Defaults::FILL_RATIO),
                                         fp  (Defaults::FALSE_POSITIVE_RATE),
                                         p   (Defaults::MAX_COUNT_NUMBER),
                                         s   (Defaults::SCALABLE_GROWTH)
@@ -189,7 +193,7 @@ public:
         }
         
         string getFilterName() const {
-            return "CountingScalableBloomFilter";
+            return "CryptoCountingScalableBloomFilter";
         }
 
         std::string getConfigure() {
@@ -261,7 +265,7 @@ public:
 
         // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
-        CountingScalableBloomFilter& Add(const std::vector<uint8_t>& data) {
+        CryptoCountingScalableBloomFilter& Add(const std::vector<uint8_t>& data) {
             if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter->Count() == filter->Capacity(); })) {
                 AddFilter(); // Add a new filter if all filters are full
             }
@@ -306,13 +310,13 @@ public:
 
         // Resets the filter to its original state.
         // Returns a reference to the filter for chaining.
-        CountingScalableBloomFilter& Reset() {
+        CryptoCountingScalableBloomFilter& Reset() {
             filters.clear(); // Clear the filter list
             AddFilter(); // Add a new filter
             return *this;
         }
 
-        ~CountingScalableBloomFilter() {
+        ~CryptoCountingScalableBloomFilter() {
         }
 
 };

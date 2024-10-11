@@ -428,15 +428,15 @@ int main()
     // DynamicBloomFilter dbf(400000); filters.push_back(&dbf);
     // vector<BloomFilterModels::AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf, &dbf, &dsbf};
     for (auto filter : filters) {
-        cout << "Filter: " << filter->getFilterName() << endl;
+        cout << "Filter: " << filter->getFilterCode() << endl;
         Tester tester(*filter);
-        tester.initTester800();
-        tester.getEntrySize();
-        tester.Testsuite800keys();
-
-        // tester.initTester400();
+        // tester.initTester800();
         // tester.getEntrySize();
-        // tester.Testsuite400keys();
+        // tester.Testsuite800keys();
+
+        tester.initTester400();
+        tester.getEntrySize();
+        tester.Testsuite400keys();
 
         // tester.initTester200();
         // tester.getEntrySize();

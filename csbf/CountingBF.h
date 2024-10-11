@@ -20,6 +20,10 @@ public:
             return "CountingBloomFilter";
         }
 
+        string getFilterCode() const {
+            return "CBF";
+        }
+
         // Returns the maximum capacity of the filter
         uint32_t Capacity() const {
             return maxCapacity;
@@ -164,6 +168,10 @@ public:
 
         string getFilterName() const {
             return "CryptoCountingBloomFilter";
+        }
+
+        string getFilterCode() const {
+            return "CryptoCBF";
         }
 
         // Returns the maximum capacity of the filter

@@ -9,6 +9,7 @@ namespace BloomFilterModels {
     public:
     // # Compulsory methods
         virtual string getFilterName() const = 0;
+        virtual string getFilterCode() const = 0;
         virtual uint32_t Size() const = 0;
         virtual uint32_t Capacity() const = 0;
         virtual double FPrate() const = 0;

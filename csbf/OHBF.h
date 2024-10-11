@@ -82,6 +82,10 @@ public:
             return "OneHashingBloomFilter";
         }
 
+        string getFilterCode() const {
+            return "OHBF";
+        }
+
         // Returns the maximum capacity of the filter
         uint32_t Capacity() const {
             return maxCapacity;

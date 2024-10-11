@@ -107,6 +107,10 @@ public:
         return "XorFilter";
     }
 
+    string getFilterCode() const {
+        return "XF";
+    }
+
     // Returns the maximum capacity of the filter
     uint32_t Capacity() const {
         return maxCapacity;

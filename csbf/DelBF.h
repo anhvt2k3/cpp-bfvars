@@ -27,6 +27,10 @@ public:
             return "DeletableBloomFilter";
         }
 
+        string getFilterCode() const {
+            return "DelBF";
+        }
+
         // Returns the maximum capacity of the filter
         uint32_t Capacity() const {
             return maxCapacity;

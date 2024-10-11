@@ -32,6 +32,10 @@ public:
             return "VariableIncrementBloomFilter";
         }
 
+        string getFilterCode() const {
+            return "VIBF";
+        }
+
         // Returns the maximum capacity of the filter
         uint32_t Capacity() const {
             return maxCapacity;

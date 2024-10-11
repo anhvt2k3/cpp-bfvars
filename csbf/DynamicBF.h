@@ -26,6 +26,10 @@ public:
             return "DynamicBloomFilter";
         }
 
+        string getFilterCode() const {
+            return "DynamicBF";
+        }
+
         std::string getConfigure() {
             std::string res = "_ _ _ CSBF Scope _ _ _ \n";
             res += "False positive rate: " + std::__cxx11::to_string(FPrate()) + "\n";
@@ -134,15 +138,15 @@ public:
     };
     
     class DynamicStdCountingBloomFilter : public DynamicFilter {
-        vector<shared_ptr<StandardCountingBloomFilter>> filters;
+        vector<shared_ptr<CountingBloomFilter>> filters;
         double fp; // Target false-positive rate
-        uint32_t c; // Maximum item count for each StandardCountingBloomFilter
+        uint32_t c; // Maximum item count for each CountingBloomFilter
         // time_t syncDate; // Synchronization date
 
         // Adds a new filter to the list with restricted false-positive rate.
         int AddFilter(const vector<vector<uint8_t>>& data = {}) {
             // Calculate false-positive rate and capacity for the new filter
-            filters.push_back(make_shared<StandardCountingBloomFilter>(c, 4, fp));
+            filters.push_back(make_shared<CountingBloomFilter>(c, 4, fp));
             return 0;
         }
 public:
@@ -152,6 +156,10 @@ public:
 
         string getFilterName() const {
             return "DynamicStdCountingBloomFilter";
+        }
+
+        string getFilterCode() const {
+            return "DynamicCBF";
         }
 
         std::string getConfigure() {
