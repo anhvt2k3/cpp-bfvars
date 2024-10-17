@@ -4,6 +4,10 @@
 namespace BloomFilterModels {
     class XorFilter : public StaticFilter {
 public:
+    struct HashKhoi {
+        // hash khối
+        uint32_t hash_values[3];
+    };
     vector<int> h; //* Hash seeds
     int b; //* Number of bits per element
 
@@ -29,15 +33,14 @@ public:
     }
     
     //* Value of h1,h2,h3(key)
-    std::uint32_t* _hash(const std::vector<uint8_t>& key) const {
-        std::uint32_t* hv = new std::uint32_t[3];
+    HashKhoi _hash(const std::vector<uint8_t>& key) const {
+        HashKhoi h_;
         auto hashKernel = BloomFilterApp::Utils::HashKernel(key, "murmur"); // Generate hash kernels
         uint32_t lower = hashKernel.LowerBaseHash;
         uint32_t upper = hashKernel.UpperBaseHash;
-        for (int i = 0; i < 3; i++) {
-            hv[i] = ( lower + upper * h[i] ) % m;
-        }
-        return hv;
+        for (int i = 0; i < 3; i++) 
+            h_.hash_values[i] = ( lower + upper * h[i] ) % (m*(i+1)/3) + i*m/3;
+        return h_;
     };
 
     XorFilter& construction(const std::vector<vector<uint8_t>>& data) {
@@ -54,28 +57,26 @@ public:
             pairs.clear();
             for (auto key : data)
             {
-                uint32_t* h_ = _hash(key);
-                H[h_[0]].push_back(key);
-                H[h_[1]].push_back(key);
-                H[h_[2]].push_back(key);
+                HashKhoi h_ = _hash(key);
+                H[h_.hash_values[0]].push_back(key);
+                H[h_.hash_values[1]].push_back(key);
+                H[h_.hash_values[2]].push_back(key);
             }
             vector<int> Q;
             for (auto keys : H)
             {
                 if (keys.size() == 1)
-                {
                     Q.push_back(fingerprint(keys[0]));
-                }
             }
             while (!Q.empty()) {
                 int x = Q.back(); Q.pop_back();
                 if (H[x].size() == 1) {
                     pairs.push_back({H[x][0], x});
-                    uint32_t* h_ = _hash(H[x][0]);
+                    HashKhoi h_ = _hash(H[x][0]);
                     for (int j=0; j<k; j++) {
-                        H[h_[j]].erase(std::remove(H[h_[j]].begin(), H[h_[j]].end(), H[x][0]), H[h_[j]].end());
-                        if (H[h_[j]].size() == 1) {
-                            Q.push_back(h_[j]);
+                        H[h_.hash_values[j]].erase(std::remove(H[h_.hash_values[j]].begin(), H[h_.hash_values[j]].end(), H[x][0]), H[h_.hash_values[j]].end());
+                        if (H[h_.hash_values[j]].size() == 1) {
+                            Q.push_back(h_.hash_values[j]);
                         }
                     }
                 }
@@ -85,10 +86,10 @@ public:
 
         auto _assign = [&](vector<vector<uint8_t>> data) -> void {
             for (auto p : pairs) {
-                uint32_t* h_ = _hash(p.key);
+                HashKhoi h_ = _hash(p.key);
                 uint8_t rvalue = fingerprint(p.key);
                 buckets->Set(p.index, 0);
-                for (int i=0; i<k; i++) rvalue ^= buckets->Get(h_[i]);
+                for (int i=0; i<k; i++) rvalue ^= buckets->Get(h_.hash_values[i]);
                 buckets->Set(p.index, rvalue);
             }
         };
@@ -139,8 +140,8 @@ public:
     // Tests for membership of the data.
     // Returns true if the data is probably a member, false otherwise.
     bool Test(const std::vector<uint8_t>& data) const {
-        uint32_t* h_ = _hash(data);
-        return fingerprint(data) == buckets->Get(h_[0]) ^ buckets->Get(h_[1]) ^ buckets->Get(h_[2]);
+        HashKhoi h_ = _hash(data);
+        return fingerprint(data) == buckets->Get(h_.hash_values[0]) ^ buckets->Get(h_.hash_values[1]) ^ buckets->Get(h_.hash_values[2]);
     }
 
     // Adds the data to the filter.
