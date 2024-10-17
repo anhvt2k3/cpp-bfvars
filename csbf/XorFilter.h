@@ -38,8 +38,10 @@ public:
         auto hashKernel = BloomFilterApp::Utils::HashKernel(key, "murmur"); // Generate hash kernels
         uint32_t lower = hashKernel.LowerBaseHash;
         uint32_t upper = hashKernel.UpperBaseHash;
-        for (int i = 0; i < 3; i++) 
-            h_.hash_values[i] = ( lower + upper * h[i] ) % (m*(i+1)/3) + i*m/3;
+        for (int i = 0; i < k; i++)
+        {
+            h_.hash_values[i] = (lower + upper * h[i]) % (m/k) + i*m/k;
+        }
         return h_;
     };
 

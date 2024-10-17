@@ -413,13 +413,13 @@ public:
 int main()
 {
     vector<BloomFilterModels::AbstractFilter*> filters = {};
-    VariableIncrementBloomFilter vibf; filters.push_back(&vibf);
-    // XorFilter xf; filters.push_back(&xf); //! Stuck in the HashFunction-Data Reconciling process
-    OneHashingBloomFilter ohbf; filters.push_back(&ohbf);
-    DeletableBloomFilter dlbf; filters.push_back(&dlbf);
-    CountingBloomFilter scbf; filters.push_back(&scbf);
-    StandardBloomFilter bf; filters.push_back(&bf);
-    CryptoCountingBloomFilter cbf; filters.push_back(&cbf);
+    // VariableIncrementBloomFilter vibf; filters.push_back(&vibf);
+    XorFilter xf; filters.push_back(&xf); //! Stuck in the HashFunction-Data Reconciling process
+    // OneHashingBloomFilter ohbf; filters.push_back(&ohbf);
+    // DeletableBloomFilter dlbf; filters.push_back(&dlbf);
+    // CountingBloomFilter scbf; filters.push_back(&scbf);
+    // StandardBloomFilter bf; filters.push_back(&bf);
+    // CryptoCountingBloomFilter cbf; filters.push_back(&cbf);
     
     // StandardCountingScalableBloomFilter scsbf; filters.push_back(&scsbf);
     // DynamicStdCountingBloomFilter dsbf(400000); filters.push_back(&dsbf);
