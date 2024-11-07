@@ -1,77 +1,90 @@
 #include "BaseBF.h"
 #include "./CountingBF.h"
 
-namespace BloomFilterModels {
-    class VariableIncrementBloomFilter : public StaticFilter {
+namespace BloomFilterModels
+{
+    class VariableIncrementBloomFilter : public StaticFilter
+    {
         unique_ptr<Buckets> dL;
         void initDL(uint32_t i)
         {
             uint32_t L = 1 << i;
-            uint32_t dLsize = (2*L - 1) - (L) + 1;
+            uint32_t dLsize = (2 * L - 1) - (L) + 1;
             uint32_t cellsize = i + 1; // ensure enough bit for 2L-1
             this->dL = make_unique<Buckets>(dLsize, cellsize);
             for (uint32_t j = 0; j < dLsize; j++)
                 dL->Set(j, L++);
         };
-public:
+
+    public:
         VariableIncrementBloomFilter() {}
         // L is a number of 2^i for i>=2
-        VariableIncrementBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
-            : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist)  // Call the base class constructor directly
+        VariableIncrementBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0)
+            : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist) // Call the base class constructor directly
         {
             initDL(Defaults::MIN_INCREMENT);
         }
 
         // L is a number of 2^i for i>=2
-        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
+        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override
+        {
             StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist);
             initDL(Defaults::MIN_INCREMENT);
         }
 
-        string getFilterName() const {
+        string getFilterName() const
+        {
             return "VariableIncrementBloomFilter";
         }
 
-        string getFilterCode() const {
+        string getFilterCode() const
+        {
             return "VIBF";
         }
 
         // Returns the maximum capacity of the filter
-        uint32_t Capacity() const {
+        uint32_t Capacity() const
+        {
             return maxCapacity;
         }
 
         // Returns the filter capacity
-        uint32_t Size() const {
+        uint32_t Size() const
+        {
             return m;
         }
 
         // Returns the number of hash functions
-        uint32_t K() const {
+        uint32_t K() const
+        {
             return k;
         }
 
         // Returns the number of items in the filter
-        uint32_t Count() const {
+        uint32_t Count() const
+        {
             return count;
         }
 
         // Returns the target false-positive rate
-        double FPrate() const {
+        double FPrate() const
+        {
             return fpRate;
         }
 
         // Tests for membership of the data.
         // Returns true if the data is probably a member, false otherwise.
-        bool Test(const std::vector<uint8_t>& data) const {
-            auto hashKernel = BloomFilterApp::Utils::HashKernel(data, "murmur"); // Generate hash kernels
+        bool Test(const std::vector<uint8_t> &data) const
+        {
+            auto hashKernel = BloomFilterApp::Utils::HashKernel64(data, "murmur_x86"); // Generate hash kernels
             uint32_t lower = hashKernel.LowerBaseHash;
             uint32_t upper = hashKernel.UpperBaseHash;
 
             // Check if all hash function indices are set in the bucket array
-            for (uint32_t i = 0; i < k; ++i) {
+            for (uint32_t i = 0; i < k; ++i)
+            {
                 uint32_t hi = uint32_t((lower + upper * i) % m);
-                uint32_t gi = uint32_t((upper + lower * i) % (dL->count) );
+                uint32_t gi = uint32_t((upper + lower * i) % (dL->count));
                 uint32_t vgi = dL->Get(gi);
                 uint32_t c = buckets->Get(hi);
                 if (c - vgi != 0 && c - vgi < dL->Get(0))
@@ -85,14 +98,16 @@ public:
 
         // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
-        VariableIncrementBloomFilter& Add(const std::vector<uint8_t>& data) {
-            auto hashKernel = BloomFilterApp::Utils::HashKernel(data, "murmur"); // Generate hash kernels
+        VariableIncrementBloomFilter &Add(const std::vector<uint8_t> &data)
+        {
+            auto hashKernel = BloomFilterApp::Utils::HashKernel64(data, "murmur_x86"); // Generate hash kernels
             uint32_t lower = hashKernel.LowerBaseHash;
             uint32_t upper = hashKernel.UpperBaseHash;
 
-            for (uint32_t i = 0; i < k; ++i) {
+            for (uint32_t i = 0; i < k; ++i)
+            {
                 uint32_t hi = uint32_t((lower + upper * i) % m);
-                uint32_t gi = uint32_t((upper + lower * i) % (dL->count) );
+                uint32_t gi = uint32_t((upper + lower * i) % (dL->count));
                 uint32_t vgi = dL->Get(gi);
                 buckets->Increment(hi, vgi);
             }
@@ -101,14 +116,16 @@ public:
             return *this;
         }
 
-        VariableIncrementBloomFilter& Remove(const std::vector<uint8_t>& data) {
-            auto hashKernel = BloomFilterApp::Utils::HashKernel(data, "murmur"); // Generate hash kernels
+        VariableIncrementBloomFilter &Remove(const std::vector<uint8_t> &data)
+        {
+            auto hashKernel = BloomFilterApp::Utils::HashKernel64(data, "murmur_x86"); // Generate hash kernels
             uint32_t lower = hashKernel.LowerBaseHash;
             uint32_t upper = hashKernel.UpperBaseHash;
 
-            for (uint32_t i = 0; i < k; ++i) {
+            for (uint32_t i = 0; i < k; ++i)
+            {
                 uint32_t hi = uint32_t((lower + upper * i) % m);
-                uint32_t gi = uint32_t((upper + lower * i) % (dL->count) );
+                uint32_t gi = uint32_t((upper + lower * i) % (dL->count));
                 uint32_t vgi = dL->Get(gi);
                 buckets->Increment(hi, -vgi);
             }
@@ -119,18 +136,21 @@ public:
 
         // Tests for membership of the data and adds it to the filter if it doesn't exist.
         // Returns true if the data was probably in the filter, false otherwise.
-        bool TestAndAdd(const std::vector<uint8_t>& data) {
-            auto hashKernel = BloomFilterApp::Utils::HashKernel(data, "murmur"); // Generate hash kernels
+        bool TestAndAdd(const std::vector<uint8_t> &data)
+        {
+            auto hashKernel = BloomFilterApp::Utils::HashKernel64(data, "murmur_x86"); // Generate hash kernels
             uint32_t lower = hashKernel.LowerBaseHash;
             uint32_t upper = hashKernel.UpperBaseHash;
             bool member = true;
 
             // Check if all hash function indices are set in the bucket array and set them if not
-            for (uint32_t i = 0; i < k; ++i) {
+            for (uint32_t i = 0; i < k; ++i)
+            {
                 uint32_t hi = uint32_t((lower + upper * i) % m);
-                uint32_t gi = uint32_t((upper + lower * i) % (dL->count) );
+                uint32_t gi = uint32_t((upper + lower * i) % (dL->count));
                 uint32_t vgi = dL->Get(gi);
-                if (buckets->Get(hi) == 0) {
+                if (buckets->Get(hi) == 0)
+                {
                     member = false;
                 }
                 buckets->Set(hi, vgi);
@@ -141,11 +161,9 @@ public:
         }
 
         ~VariableIncrementBloomFilter() {}
-
-    
-};
-    class BhSequenceBloomFitler : public StaticFilter {
-        
-};
+    };
+    class BhSequenceBloomFitler : public StaticFilter
+    {
+    };
 
 };

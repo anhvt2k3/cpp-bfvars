@@ -1,6 +1,10 @@
 #include <cstdint>
+#include <string>
 
 namespace Defaults {
+    std::string HASH_ALGORITHM = "murmur_x86";
+    std::string CRYPTO_HASH_ALGORITHM = "sha256";
+    const int HASH_BIT_RANGE = 128;
     const uint8_t BUCKET_SIZE = 1;
     const uint8_t CBF_BUCKET_SIZE = 4;
     const double FALSE_POSITIVE_RATE = 0.01;

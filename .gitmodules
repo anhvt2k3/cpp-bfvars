@@ -1,0 +1,3 @@
+[submodule "utils/hash/rurban-smhasher"]
+	path = utils/hash/rurban-smhasher
+	url = https://github.com/rurban/smhasher
