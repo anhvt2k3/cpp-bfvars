@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <cstdlib>
 using namespace std;
@@ -40,7 +41,6 @@ public:
   void recheck_data() const {
     try {
       for (uint32_t i = 0; i < count ; i++) {
-
           if (this->Data[i] != 0) 
             throw std::invalid_argument("Cell is not zero");
       }
@@ -68,9 +68,14 @@ public:
   }
 
   // Set the value of a bucket
-  Buckets& Set(uint32_t bucket, int value) {
-    if (value > this->Max) {
+  Buckets& Set(uint32_t bucket, int value, string type = "MaxValue") {
+    if (type == "MaxValue") {
       value = this->Max;
+    } else if (type == "ZeroValue") {
+      value = 0;
+    } else if (type == "Truncate") {
+      uint32_t mask = (1 << this->bucketSize) - 1;
+      value = value & mask;
     }
     SetBits(uint32_t(bucket * this->bucketSize), this->bucketSize, value);
     return *this;

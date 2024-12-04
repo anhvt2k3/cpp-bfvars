@@ -3,7 +3,7 @@
 namespace Defaults {
     const uint8_t BUCKET_SIZE = 1;
     const uint8_t CBF_BUCKET_SIZE = 4;
-    const double FALSE_POSITIVE_RATE = 0.01;
+    const double FALSE_POSITIVE_RATE = 0.002;
     
     //# VariableIncrementBF constants
     const uint32_t MIN_INCREMENT = 2;
@@ -15,4 +15,12 @@ namespace Defaults {
 
     //# DeletableBF constants
     const uint32_t COLLIDE_REGION_SIZE = 100;
+
+    //# CuckooFilter constants
+namespace Cuckoo {
+    // const uint32_t FINGERPRINT_SIZE = 8;
+    const uint32_t BUCKET_CAPACITY = 4;
+    const uint32_t FULL_CONDITION = 500;
+    };
+
 };

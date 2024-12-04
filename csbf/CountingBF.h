@@ -58,7 +58,8 @@ public:
 
             // Check if all hash function indices are set in the bucket array
             for (uint32_t i = 0; i < k; ++i) {
-                if (buckets->Get(uint32_t((lower + upper * i) % m)) == 0)
+                uint32_t index = ((lower + upper * i) % m);
+                if (buckets->Get(index) == 0)
                 {
                     return false;
                 }
@@ -77,7 +78,8 @@ public:
             // Set the K bits in the bucket array
             for (uint32_t i = 0; i < k; ++i) {
                 // cout << "cbf-Adding: " << uint32_t((lower + upper * i) % m) << endl;
-                buckets->Increment(uint32_t((lower + upper * i) % m), 1);
+                uint32_t index = ((lower + upper * i) % m);
+                buckets->Increment(index, 1);
             }
 
             this->count++;

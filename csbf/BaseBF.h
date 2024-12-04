@@ -7,6 +7,12 @@ namespace BloomFilterModels {
 // ! Filter base class
     class AbstractFilter {
     public:
+        unique_ptr<Buckets> buckets; // Bucket array
+        uint32_t m; // Filter size (number of buckets)
+        uint32_t k; // Number of hash functions
+        uint32_t count; // Number of items added
+        uint32_t maxCapacity; // Maximum capacity of the filter
+        double fpRate; // Target false-positive rate
     // # Compulsory methods
         virtual string getFilterName() const = 0;
         virtual string getFilterCode() const = 0;
@@ -36,12 +42,6 @@ namespace BloomFilterModels {
 // ! Filter parent class
     class StaticFilter : public AbstractFilter {
 protected:
-        unique_ptr<Buckets> buckets; // Bucket array
-        uint32_t m; // Filter size (number of buckets)
-        uint32_t k; // Number of hash functions
-        uint32_t count; // Number of items added
-        uint32_t maxCapacity; // Maximum capacity of the filter
-        double fpRate; // Target false-positive rate
         
 public:
         virtual void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
@@ -73,4 +73,48 @@ public:
 
     class DynamicFilter : public AbstractFilter {};
 
-}
+    class CuckooBase : public StaticFilter {
+protected:
+        uint32_t fsize;
+        uint32_t cargosize;
+public:
+        uint32_t OptimalFingerprintSize(uint32_t fp, uint32_t b) {
+            // return (uint32_t)(log2(1/fp) + log2(2*b) + 1) ;
+            return 8;
+        }
+        
+        uint32_t OptimalMComputing(uint32_t n) {
+            return n / 0.95;
+        }
+        
+        virtual void Init(uint32_t n, uint8_t b = Defaults::Cuckoo::BUCKET_CAPACITY, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
+            this->m = OptimalMComputing(n);
+            this->k = 2;
+            this->count = countExist;
+            this->maxCapacity = n;
+            this->fpRate = fpRate;
+            this->fsize = OptimalFingerprintSize(fpRate, b);
+            this->cargosize = m/b + 1;
+            this->buckets = make_unique<Buckets>(cargosize*b, fsize+1);
+        }
+
+        string getConfigure() {
+            string res = "_ _ _ Filter Configuration _ _ _\n";
+            // res += "Filter Size: " + to_string(Size()) + "\n";
+            // res += "Capacity: " + to_string(Capacity()) + "\n";
+            // res += "Number of Hash Functions: " + to_string(K()) + "\n";
+            // res += "False Positive Rate: " + to_string(FPrate()) + "\n";
+            // res += "Number of Items Added: " + to_string(Count()) + "\n";
+            // res += "_ _ _ Buckets Configuration _ _ _\n";
+            // res += "Bucket Size per: " + to_string(buckets->bucketSize) + " (Max value: " + to_string(buckets->Max) + ")" "\n";
+            // res += "Bucket Count: " + to_string(buckets->count) + "\n";
+            return res;
+        }
+
+        CuckooBase() {}
+        CuckooBase(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) {
+            this->Init(n, b, fpRate, countExist);
+        }
+    };
+
+};
