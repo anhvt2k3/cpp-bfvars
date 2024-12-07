@@ -4,3 +4,5 @@
 g++ -o main main.cpp -lssl -lcrypto; ./main.exe > log.txt
 g++ -o main main.cpp -lssl -lcrypto; ./main.exe 
 g++ -o test test.cpp; ./test.exe
+
+g++ -o D:/Desktop/csbf/data/data_gen D:/Desktop/csbf/data/data_gen.cpp; D:/Desktop/csbf/data/data_gen.exe

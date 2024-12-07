@@ -515,7 +515,7 @@ public:
         cout << endl;
 
         // Record the removal performance into TestCase
-        tc.test_case = "CheckSetS";
+        tc.test_case = "InsertSet1,2";
         // tc.adding_time = elapsed;
         tc.key_set = "1,2";
         tc.nonkey_set = "3,4";
@@ -571,7 +571,7 @@ public:
         cout << endl;
 
         // Record the removal performance into TestCase
-        tc.test_case = "RemoveSetR";
+        tc.test_case = "RemoveSet1";
         tc.key_set = "2";
         tc.nonkey_set = "1,3,4";
         tc.test_size = testCount;
@@ -584,8 +584,63 @@ public:
 
         // # Test node 3
         // Insert set S -> time
-        elapsed = testInserting(mergeVectors(keys, readCSV(set3))).count();
+        elapsed = testInserting(readCSV(set1)).count();
         cout << "Inserting Half Set S Elapsed time: " << elapsed << "s" << endl;
+        tc.adding_time = elapsed;
+
+        // : MEASUREMENT
+        fcount = 0;
+        testCount = 0;
+        time = chrono::duration<double>(0);
+
+        result_1 = TestFP(readCSV(set1), true);
+        fcount += result_1.FP.size();
+        tc.f1 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(set2), true);
+        fcount += result_1.FP.size();
+        tc.f2 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(set3), false);
+        fcount += result_1.FP.size();
+        tc.f3 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(set4), false);
+        fcount += result_1.FP.size();
+        tc.f4 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
+        cout << fixed << setprecision(6);
+        cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
+        cout << "Total Test Count: " << testCount << endl;
+        cout << "Total Elapsed Time: " << time.count() << "s" << endl;
+        cout << endl;
+
+        // Record the removal performance into TestCase
+        tc.test_case = "InsertSet1";
+        // tc.adding_time = elapsed;
+        tc.key_set = "1,2";
+        tc.nonkey_set = "3,4";
+        tc.test_size = testCount;
+        tc.accuracy = accuracy;
+        tc.test_time = time.count();
+
+        // Write performance data to the CSV
+        perf << tc.toCSVString();
+        // : END MEASUREMENT
+        
+        // # Test node 3
+        // Insert set S -> time
+        elapsed = testInserting(readCSV(set3)).count();
+        cout << "Inserting Set 3 Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
 
         // : MEASUREMENT
@@ -625,7 +680,7 @@ public:
         cout << endl;
 
         // Record the removal performance into TestCase
-        tc.test_case = "InsetBackTest";
+        tc.test_case = "InsertSet3[OVERSIZE]";
         // tc.adding_time = elapsed;
         tc.key_set = "1,2,3";
         tc.nonkey_set = "4";
