@@ -25,6 +25,7 @@ smhasher-master/
 # Ignore compiled output
 out/
 .log
+*.log
 log.txt
 1Mprimes.h
 primes.txt

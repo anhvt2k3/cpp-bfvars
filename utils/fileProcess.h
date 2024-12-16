@@ -52,9 +52,11 @@ struct Configuration {
     size_t bucket_size = 0;
     size_t bucket_max_value = 0;
     size_t bucket_count = 0;
+    string hash_algo = "";
+    string hash_scheme = "";
 
     string getHeader() const {
-        return "FilterSize/Capacity/NumHashFunctions/FalsePositiveRate/NumItemsAdded/BucketSize/BucketMaxValue/BucketCount\n";
+        return "FilterSize/Capacity/NumHashFunctions/FalsePositiveRate/NumItemsAdded/BucketSize/BucketMaxValue/BucketCount/HashAlgo/HashScheme\n";
     }
 
     string toCSVString() const {
@@ -66,7 +68,9 @@ struct Configuration {
             << num_items_added << "/"
             << bucket_size << "/"
             << bucket_max_value << "/"
-            << bucket_count << "\n";
+            << bucket_count << "/"
+            << hash_algo << "/"
+            << hash_scheme << "\n";
         return oss.str();
     }
 
