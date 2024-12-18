@@ -6,10 +6,11 @@
 
 
 struct TestCase {
-    string test_case = "";
+    string filterID = "NaN";
+    string test_case = "NaN";
     double adding_time = 0;
-    string key_set = "";
-    string nonkey_set = "";
+    string key_set = "NaN";
+    string nonkey_set = "NaN";
     double f1 = 0;
     double f2 = 0;
     double f3 = 0;
@@ -18,16 +19,41 @@ struct TestCase {
     size_t test_size = 0;
     double accuracy = 0;
     double test_time = 0;
+    int nof_collision = 0;
+    int nof_removable = 0;
+    int nof_operand = 0;
+
+    TestCase() {}
+
+    void reset() {
+        filterID = "NaN";
+        test_case = "NaN";
+        adding_time = 0;
+        key_set = "NaN";
+        nonkey_set = "NaN";
+        f1 = 0;
+        f2 = 0;
+        f3 = 0;
+        f4 = 0;
+        f5 = 0;
+        test_size = 0;
+        accuracy = 0;
+        test_time = 0;
+        nof_collision = 0;
+        nof_removable = 0;
+        nof_operand = 0;
+    }
 
     // Function to return the CSV header
     std::string getHeader() const {
-        return "TestCase/AddOrRemoveTime/KeySet/NonkeySet/F1/F2/F3/F4/F5/TestSize/Accuracy/TestTime\n";
+        return "FilterID/TestCase/AddOrRemoveTime/KeySet/NonkeySet/F1/F2/F3/F4/F5/TestSize/Accuracy/TestTime/NofCollision/NofRemovable/NofOperand\n";
     }
 
     // Function to format the TestCase object as a CSV string
     std::string toCSVString() const {
         std::ostringstream oss;
-        oss << test_case << "/"
+        oss << filterID << "/"
+            << test_case << "/"
             << adding_time << "/"
             << key_set << "/"
             << nonkey_set << "/"
@@ -38,35 +64,37 @@ struct TestCase {
             << f5 << "/"
             << test_size << "/"
             << accuracy << "/"
-            << test_time << "\n";
+            << test_time << "/"
+            << nof_collision << "/"
+            << nof_removable << "/"
+            << nof_operand << "/"
+            << "\n";
         return oss.str();
     }
 };
 
 struct Configuration {
-    size_t filter_size = 0;
-    size_t capacity = 0;
-    size_t num_hash_functions = 0;
-    double false_positive_rate = 0;
-    size_t num_items_added = 0;
-    size_t bucket_size = 0;
-    size_t bucket_max_value = 0;
-    size_t bucket_count = 0;
+    const BloomFilterModels::AbstractFilter* filter = nullptr;
+
+    Configuration() {}
+
+    Configuration(const BloomFilterModels::AbstractFilter* filter) {
+        this->filter = filter;
+    }
 
     string getHeader() const {
-        return "FilterSize/Capacity/NumHashFunctions/FalsePositiveRate/NumItemsAdded/BucketSize/BucketMaxValue/BucketCount\n";
+        return "FilterID/FilterSize/Capacity/NumHashFunctions/FalsePositiveRate/NumItemsAdded/BucketSize\n";
     }
 
     string toCSVString() const {
         ostringstream oss;
-        oss << filter_size << "/"
-            << capacity << "/"
-            << num_hash_functions << "/"
-            << false_positive_rate << "/"
-            << num_items_added << "/"
-            << bucket_size << "/"
-            << bucket_max_value << "/"
-            << bucket_count << "\n";
+        oss << filter->getFilterCode() << "/"
+            << filter->Size() << "/"
+            << filter->Capacity() << "/"
+            << filter->K() << "/"
+            << filter->FPrate() << "/"
+            << filter->Count() << "/"
+            << filter->BucketSize() << "\n";
         return oss.str();
     }
 

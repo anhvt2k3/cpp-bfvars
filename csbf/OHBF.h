@@ -67,14 +67,14 @@ public:
         vector<int> indexes;
 public:
         OneHashingBloomFilter() {}
-        OneHashingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
-            : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
+        OneHashingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0) 
+            : StaticFilter(n, b, fpRate, k, countExist)  // Call the base class constructor directly
         {
             this->indexes = PartitionModule().determinePartitionSizes(this->m, this->k);
         }
 
-        void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0)  {
-            StaticFilter::Init(n, 1, fpRate, countExist);
+        void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0)  {
+            StaticFilter::Init(n, 1, fpRate, k, countExist);
             this->indexes = PartitionModule().determinePartitionSizes(this->m, this->k);
         }
 

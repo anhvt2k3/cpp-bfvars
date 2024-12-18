@@ -12,6 +12,7 @@ bin/
 *.o
 *.obj
 *.csv
+*.svg
 
 # Ignore generated files
 Makefile

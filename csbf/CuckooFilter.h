@@ -2,34 +2,22 @@
 #include "./CountingBF.h"
 
 namespace BloomFilterModels {
-    class VariableIncrementBloomFilter : public StaticFilter {
-        unique_ptr<Buckets> dL;
-        void initDL(uint32_t i)
-        {
-            uint32_t L = 1 << i;
-            uint32_t dLsize = (2*L - 1) - (L) + 1;
-            uint32_t cellsize = i + 1; // ensure enough bit for 2L-1
-            this->dL = make_unique<Buckets>(dLsize, cellsize);
-            for (uint32_t j = 0; j < dLsize; j++)
-                dL->Set(j, L++);
-        };
+    class CuckooFilter : public CuckooBase {
 public:
-        VariableIncrementBloomFilter() {}
+        CuckooFilter() {}
         // L is a number of 2^i for i>=2
-        VariableIncrementBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0) 
-            : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, k, countExist)  // Call the base class constructor directly
+        CuckooFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0) 
+            : CuckooBase(n, Defaults::CBF_BUCKET_SIZE, fpRate, k, countExist)  // Call the base class constructor directly
         {
-            initDL(Defaults::MIN_INCREMENT);
         }
 
         // L is a number of 2^i for i>=2
         void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0) override {
-            StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, k, countExist);
-            initDL(Defaults::MIN_INCREMENT);
+            CuckooBase::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, k, countExist);
         }
 
         string getFilterName() const {
-            return "VariableIncrementBloomFilter";
+            return "CuckooFilter";
         }
 
         string getFilterCode() const {
@@ -61,6 +49,29 @@ public:
             return fpRate;
         }
 
+        uint32_t fingerprint(const vector<uint8_t>& data) const {
+            uint32_t result = 0;
+            for (auto byte : data) {
+                result ^= byte;
+            }
+            return result;
+        }
+
+        uint32_t hash_(vector<uint8_t>& key) const {
+            uint32_t hashvalue;
+            hashvalue = BloomFilterApp::Utils::HashKernel(key, "single").LowerBaseHash;
+            return hashvalue;
+        }
+
+        uint32_t hash_(uint32_t key) const {
+            uint32_t hashvalue;
+            hashvalue = key;
+            return hashvalue;
+        }
+
+        //: Bucket structure = <1-bit of isOccupied> + <fingerprint>
+        //* Entries index is bound within cargosize
+
         // Tests for membership of the data.
         // Returns true if the data is probably a member, false otherwise.
         bool Test(const std::vector<uint8_t>& data) const {
@@ -85,7 +96,7 @@ public:
 
         // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
-        VariableIncrementBloomFilter& Add(const std::vector<uint8_t>& data) {
+        CuckooFilter& Add(const std::vector<uint8_t>& data) {
             auto hashKernel = BloomFilterApp::Utils::HashKernel(data, "murmur"); // Generate hash kernels
             uint32_t lower = hashKernel.LowerBaseHash;
             uint32_t upper = hashKernel.UpperBaseHash;
@@ -101,7 +112,7 @@ public:
             return *this;
         }
 
-        bool Remove(const std::vector<uint8_t>& data) {
+        CuckooFilter& Remove(const std::vector<uint8_t>& data) {
             auto hashKernel = BloomFilterApp::Utils::HashKernel(data, "murmur"); // Generate hash kernels
             uint32_t lower = hashKernel.LowerBaseHash;
             uint32_t upper = hashKernel.UpperBaseHash;
@@ -114,7 +125,7 @@ public:
             }
 
             this->count--;
-            return true;
+            return *this;
         }
 
         // Tests for membership of the data and adds it to the filter if it doesn't exist.
@@ -140,12 +151,9 @@ public:
             return member;
         }
 
-        ~VariableIncrementBloomFilter() {}
+        ~CuckooFilter() {}
 
     
-};
-    class BhSequenceBloomFitler : public StaticFilter {
-        
 };
 
 };

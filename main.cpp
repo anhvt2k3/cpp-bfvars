@@ -11,12 +11,22 @@
 using namespace std;
 using namespace BloomFilterModels;
 
-string setall = "./data/dataset0.csv"; //# 0 => all possible values
+string set0 = "./data/dataset0.csv"; //# 0 => all possible values
 string set1 = "./data/dataset1.csv"; //# 1 => values: 0 -> 200k
 string set2 = "./data/dataset2.csv"; //# 2 => values: 200k -> 400k
 string set3 = "./data/dataset3.csv"; //# 3 => values: 400k -> 600k
 string set4 = "./data/dataset4.csv"; //# 4 => values: 600k -> 800k
 string set5 = "./data/dataset5.csv"; //# 5 => values: 800k -> 1M
+
+string getVarName(string str) {
+    if (str == "./data/dataset0.csv") return "set0";
+    if (str == "./data/dataset1.csv") return "set1";
+    if (str == "./data/dataset2.csv") return "set2";
+    if (str == "./data/dataset3.csv") return "set3";
+    if (str == "./data/dataset4.csv") return "set4";
+    if (str == "./data/dataset5.csv") return "set5";
+    return "Unknown";
+}
 
 void printVector(vector<string> data) {
     for (auto d : data) {
@@ -63,6 +73,8 @@ class Result
 {
     public:
         long long int testCount = 0;
+        long long int nof_collision = 0;
+        long long int nof_removable = 0;
         chrono::duration<double> elapsed;
         vector<string> FP;
         float accuracy = 0;
@@ -132,23 +144,6 @@ public:
         return bf.getConfigure();
     }
 
-    Configuration genConfig() {
-        Configuration config;
-
-        config.filter_size = bf.Size();                   // Call predefined method for filter size
-        config.capacity = bf.Capacity();                 // Call predefined method for capacity
-        config.num_hash_functions = bf.K();              // Call predefined method for hash functions
-        config.false_positive_rate = bf.FPrate();        // Call predefined method for false positive rate
-        config.num_items_added = bf.Count();             // Call predefined method for items added
-
-        config.bucket_size = bf.buckets->bucketSize;     // Access bucket size
-        config.bucket_max_value = bf.buckets->Max;       // Access max value for buckets
-        config.bucket_count = bf.buckets->count;         // Access bucket count
-
-        return config;
-}
-
-
     // Return capacity of bf
     string Capacity() {
         return to_string(bf.Capacity());
@@ -159,7 +154,10 @@ public:
         return bf.K();
     }
 
-    // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
+    /*
+        Input: vector of strings || Output: chrono::duration<double> as total time elapsed
+        Reset the filter then insert
+    */
     chrono::duration<double> testAdding(vector<string> dataArray) {
         chrono::duration<double> total_elapsed;
         cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
@@ -179,7 +177,7 @@ public:
                 sf->Init(dataArray.size());
                 auto end = chrono::high_resolution_clock::now();
                 total_elapsed += start - end;
-            }
+            
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
                 auto start = chrono::high_resolution_clock::now();
@@ -188,8 +186,69 @@ public:
                 total_elapsed += end - start;
                 // cout << "Adding: " << dataBytes.data() << endl;
             }
+            
+            } else {
+// * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
+            for (auto data : dataArray) {
+                vector<uint8_t> dataBytes = getAsciiBytes(data);
+                auto start = chrono::high_resolution_clock::now();
+                bf.TestAndAdd(dataBytes);
+                auto end = chrono::high_resolution_clock::now();
+                total_elapsed += end - start;
+            }
         }
         return total_elapsed;
+        }
+    }
+
+    Result testAdding_v1(vector<string> dataArray) {
+        Result res;
+        res.nof_collision = 0;
+
+        chrono::duration<double> total_elapsed;
+        cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
+
+        if (bf.getFilterName() == "XorFilter") {
+            vector<vector<uint8_t>> data;
+            for (auto d : dataArray) {
+                data.push_back(getAsciiBytes(d));
+            }
+            auto start = chrono::high_resolution_clock::now();
+            bf.Init(data);
+            auto end = chrono::high_resolution_clock::now();
+            total_elapsed = end - start;
+        }
+            if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
+                auto start = chrono::high_resolution_clock::now();
+                sf->Init(dataArray.size());
+                auto end = chrono::high_resolution_clock::now();
+                total_elapsed += start - end;
+            
+            for (auto data : dataArray) {
+                vector<uint8_t> dataBytes = getAsciiBytes(data);
+                res.nof_collision += bf.Test(dataBytes) ;
+                auto start = chrono::high_resolution_clock::now();
+                bf.Add(dataBytes);
+                auto end = chrono::high_resolution_clock::now();
+                total_elapsed += end - start;
+                // cout << "Adding: " << dataBytes.data() << endl;
+            }
+            
+            } else {
+// * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
+            for (auto data : dataArray) {
+                vector<uint8_t> dataBytes = getAsciiBytes(data);
+                res.nof_collision += bf.Test(dataBytes) ;
+                auto start = chrono::high_resolution_clock::now();
+                bf.TestAndAdd(dataBytes);
+                auto end = chrono::high_resolution_clock::now();
+                total_elapsed += end - start;
+            }
+        }
+        
+        res.elapsed = total_elapsed;
+        res.testCount = dataArray.size();
+        return res;
     }
 
     chrono::duration<double> testInserting(vector<string> dataArray) {
@@ -205,6 +264,27 @@ public:
             // cout << "Adding: " << dataBytes.data() << endl;
         }
         return total_elapsed;
+    }
+
+    Result testInserting_v1(vector<string> dataArray) {
+        Result res;
+        res.nof_collision = 0;
+        chrono::duration<double> total_elapsed;
+        cout << "Testing Inserting of "<< dataArray.size() <<" keys!" << endl;
+
+        for (auto data : dataArray) {
+            vector<uint8_t> dataBytes = getAsciiBytes(data);
+            res.nof_collision += bf.Test(dataBytes);
+            auto start = chrono::high_resolution_clock::now();
+            bf.Add(dataBytes);
+            auto end = chrono::high_resolution_clock::now();
+            total_elapsed += end - start;
+            // cout << "Adding: " << dataBytes.data() << endl;
+        }
+
+        res.testCount = dataArray.size();
+        res.elapsed = total_elapsed;
+        return res;
     }
 
     // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
@@ -237,6 +317,27 @@ public:
             total_elapsed += end - start;
         }
         return total_elapsed;
+    }
+
+    Result testRemove_v1(vector<string> dataArray) {
+        Result res;
+        res.nof_removable = 0;
+        
+        chrono::duration<double> total_elapsed;
+        // cout << endl;
+        cout << "Testing Removing of "<< dataArray.size()<<" entries!" << endl;
+        // cout << endl;
+        for (auto data : dataArray) {
+            vector<uint8_t> dataBytes = getAsciiBytes(data);
+            auto start = chrono::high_resolution_clock::now();
+            res.nof_removable += bf.TestAndRemove(dataBytes);
+            auto end = chrono::high_resolution_clock::now();
+            total_elapsed += end - start;
+        }
+
+        res.elapsed = total_elapsed;
+        res.testCount = dataArray.size();
+        return res;
     }
 
     Result TestFP(vector<string> dataArray, bool correctAns=true) {
@@ -455,8 +556,8 @@ public:
     void ICISN_testsuite() 
     {
         // # Initialization
+        ofstream conf("icisn-config.csv");
         ofstream perf("icisn-result.csv");
-        ofstream conf("icisn-configuration.csv");
         if (!perf || !conf) {
             cerr << "Failed to open output files" << endl;
             return;
@@ -464,18 +565,19 @@ public:
 
         // Write headers to CSV files
         TestCase tc;
-        Configuration cf;
         perf << tc.getHeader();
-        conf << cf.getHeader();
 
         this->initTester400();
         cout << endl;
 
         // # Test node 1
         // Insert set S -> time
-        auto elapsed = testAdding(keys).count();
+        auto res = testAdding_v1(keys);
+        auto elapsed = res.elapsed.count();
         cout << "Adding Set S Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
+        tc.nof_collision = res.nof_collision;
+        tc.nof_operand = res.testCount;
 
         // : MEASUREMENT
         long long int fcount = 0;
@@ -524,14 +626,17 @@ public:
         tc.test_time = time.count();
 
         // Write performance data to the CSV
-        perf << tc.toCSVString();
+        perf << tc.toCSVString(); tc.reset();
         // : END MEASUREMENT
 
         // # Test node 2
         // Remove set R -> time
-        elapsed = testRemove(readCSV(set1)).count();
+        res = testRemove_v1(readCSV(set1));
+        elapsed = res.elapsed.count();
         cout << "Removing Half Set S Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
+        tc.nof_removable = res.nof_removable;
+        tc.nof_operand = res.testCount;
 
         // : MEASUREMENT
         // Check set S-R over U -> accuracy
@@ -579,14 +684,17 @@ public:
         tc.test_time = time.count();
 
         // Write performance data to the CSV
-        perf << tc.toCSVString();
+        perf << tc.toCSVString(); tc.reset();
         // : END MEASUREMENT
 
         // # Test node 3
         // Insert set S -> time
-        elapsed = testInserting(readCSV(set1)).count();
+        res = testInserting_v1(readCSV(set1));
+        elapsed = res.elapsed.count();
         cout << "Inserting Half Set S Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
+        tc.nof_collision = res.nof_collision;
+        tc.nof_operand = res.testCount;
 
         // : MEASUREMENT
         fcount = 0;
@@ -634,14 +742,17 @@ public:
         tc.test_time = time.count();
 
         // Write performance data to the CSV
-        perf << tc.toCSVString();
+        perf << tc.toCSVString(); tc.reset();
         // : END MEASUREMENT
         
-        // # Test node 3
+        // # Test node 4
         // Insert set S -> time
-        elapsed = testInserting(readCSV(set3)).count();
+        res = testInserting_v1(readCSV(set3));
+        elapsed = res.elapsed.count();
         cout << "Inserting Set 3 Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
+        tc.nof_collision = res.nof_collision;
+        tc.nof_operand = res.testCount;
 
         // : MEASUREMENT
         fcount = 0;
@@ -689,23 +800,13 @@ public:
         tc.test_time = time.count();
 
         // Write performance data to the CSV
-        perf << tc.toCSVString();
+        perf << tc.toCSVString(); tc.reset();
         // : END MEASUREMENT
 
+        Configuration cf(&bf); conf << cf.getHeader();
+        conf << cf.toCSVString();
 
         // # Finalization
-        // Record configuration to Configuration object
-        cf.filter_size = bf.Size();
-        cf.capacity = bf.Capacity();
-        cf.num_hash_functions = bf.K();
-        cf.false_positive_rate = bf.FPrate();
-        cf.num_items_added = bf.Count();
-        cf.bucket_size = bf.buckets->bucketSize;
-        cf.bucket_max_value = bf.buckets->Max;
-        cf.bucket_count = bf.buckets->count;
-
-        // Write configuration data to the CSV
-        conf << cf.toCSVString();
 
         cout << "Test done running!" << endl;
 
@@ -713,8 +814,158 @@ public:
         conf.close();
     }
 
+    string AAdd600k (
+                string skey1 = set1, 
+                string skey2 = set2, 
+                string skey3 = set3, 
+                string snkey1 = set4,
+                string snkey2 = set5
+        )
+    {
+        TestCase tc;
+        // # Test node 1
+        // Insert set S -> time
+        auto elapsed = testAdding(mergeVectors(readCSV(skey1),readCSV(skey2),readCSV(skey3))).count();
+        cout << "Adding Keys Elapsed time: " << elapsed << "s" << endl;
+        tc.filterID = bf.getFilterCode();
+        tc.adding_time = elapsed;
 
+        // : MEASUREMENT
+        long long int fcount = 0;
+        long long int testCount = 0;
+        Result result_1;
+        auto time = chrono::duration<double>(0);
 
+        result_1 = TestFP(readCSV(skey1), true);
+        fcount += result_1.FP.size();
+        tc.f1 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(skey2), true);
+        fcount += result_1.FP.size();
+        tc.f2 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(skey3), true);
+        fcount += result_1.FP.size();
+        tc.f3 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(snkey1), false);
+        fcount += result_1.FP.size();
+        tc.f4 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(snkey2), false);
+        fcount += result_1.FP.size();
+        tc.f5 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        float accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
+        cout << fixed << setprecision(6);
+        cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
+        cout << "Total Test Count: " << testCount << endl;
+        cout << "Total Elapsed Time: " << time.count() << "s" << endl;
+        cout << endl;
+
+        // Record the removal performance into TestCase
+        tc.test_case = "Std Test";
+        // tc.adding_time = elapsed;
+        // : to be fixed
+        tc.key_set = getVarName(skey1) + "+" + getVarName(skey2) + "+" + getVarName(skey3);
+        tc.nonkey_set = getVarName(snkey1) + "+" + getVarName(snkey2);
+        tc.test_size = testCount;
+        tc.accuracy = accuracy;
+        tc.test_time = time.count();
+        // : END MEASUREMENT
+
+        cout << getConfig();
+        cout << "Test done running!" << endl;
+        cout << endl;
+        return tc.toCSVString();
+    }
+ 
+    string AAdd400k (
+                string skey1 = set1, 
+                string skey2 = set2, 
+                string snkey1 = set3, 
+                string snkey2 = set4,
+                string snkey3 = set5
+        )
+    {
+        TestCase tc;
+        // # Test node 1
+        // Insert set S -> time
+        auto elapsed = testAdding(mergeVectors(readCSV(skey1),readCSV(skey2))).count();
+        cout << "Adding Keys Elapsed time: " << elapsed << "s" << endl;
+        tc.filterID = bf.getFilterCode();
+        tc.adding_time = elapsed;
+
+        // : MEASUREMENT
+        long long int fcount = 0;
+        long long int testCount = 0;
+        Result result_1;
+        auto time = chrono::duration<double>(0);
+
+        result_1 = TestFP(readCSV(skey1), true);
+        fcount += result_1.FP.size();
+        tc.f1 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(skey2), true);
+        fcount += result_1.FP.size();
+        tc.f2 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(snkey1), false);
+        fcount += result_1.FP.size();
+        tc.f3 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(snkey2), false);
+        fcount += result_1.FP.size();
+        tc.f4 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(snkey3), false);
+        fcount += result_1.FP.size();
+        tc.f5 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        float accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
+        cout << fixed << setprecision(6);
+        cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
+        cout << "Total Test Count: " << testCount << endl;
+        cout << "Total Elapsed Time: " << time.count() << "s" << endl;
+        cout << endl;
+
+        // Record the removal performance into TestCase
+        tc.test_case = "Std Test 2";
+        // tc.adding_time = elapsed;
+        // : to be fixed
+        tc.key_set = getVarName(skey1) + "+" + getVarName(skey2) ;
+        tc.nonkey_set = getVarName(snkey1) + "+" + getVarName(snkey2) + "+" + getVarName(snkey3);
+        tc.test_size = testCount;
+        tc.accuracy = accuracy;
+        tc.test_time = time.count();
+        // : END MEASUREMENT
+
+        cout << getConfig();
+        cout << "Test done running!" << endl;
+        cout << endl;
+        return tc.toCSVString();
+    }
+ 
     ~Tester() {
     }
 };
@@ -726,23 +977,114 @@ void saveBitmap(const BloomFilterModels::AbstractFilter* filter)
     cout << "Bitmap saved!" << endl;
 }
 
+// #define AtomicI
+// #define AtomicII
+#define Icisn
 int main()
 {
     vector<BloomFilterModels::AbstractFilter*> filters = {};
     // XorFilter xf; filters.push_back(&xf); //! Stuck in the HashFunction-Data Reconciling process
     // VariableIncrementBloomFilter vibf; filters.push_back(&vibf);
-    // OneHashingBloomFilter ohbf; filters.push_back(&ohbf);
-    // DeletableBloomFilter dlbf; filters.push_back(&dlbf);
-    CountingBloomFilter scbf; filters.push_back(&scbf);
     // StandardBloomFilter bf; filters.push_back(&bf);
+    // CountingBloomFilter scbf; filters.push_back(&scbf);
+    DeletableBloomFilter dlbf; filters.push_back(&dlbf);
+    // OneHashingBloomFilter ohbf; filters.push_back(&ohbf);
     // CryptoCountingBloomFilter cbf; filters.push_back(&cbf);
     
-    // StandardCountingScalableBloomFilter scsbf; filters.push_back(&scsbf);
     // DynamicStdCountingBloomFilter dsbf(400000); filters.push_back(&dsbf);
+    // ScalableStandardBloomFilter ssbf; filters.push_back(&ssbf);
+    // StandardCountingScalableBloomFilter scsbf; filters.push_back(&scsbf);
     // ScalableDeletableBloomFilter sdlbf; filters.push_back(&sdlbf);
     // CountingScalableBloomFilter csbf; filters.push_back(&csbf);
     // DynamicBloomFilter dbf(400000); filters.push_back(&dbf);
     // vector<BloomFilterModels::AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf, &dbf, &dsbf};
+
+#ifdef AtomicI
+    ofstream perf("csvs/stdsuite-result.csv");
+    ofstream conf("csvs/stdsuite-config.csv");
+    if (!perf || !conf) {
+        cerr << "Cannot open file: std800k-result.csv or std800k-config.csv" << endl;
+        return 1;
+    }
+    Configuration cf;
+    TestCase tc;
+
+    perf << tc.getHeader();
+    conf << cf.getHeader();
+
+    for (auto filter : filters) {
+        cout << "Filter: " << filter->getFilterCode() << endl;
+        Tester tester(*filter);
+        Configuration cf(filter);
+        // tester.initTester800();
+        // tester.getEntrySize();
+        // tester.Testsuite800keys();
+
+        perf << tester.AAdd600k();
+        filter->Reset();
+        perf << tester.AAdd600k(set1,set3,set4,set2,set5);
+        filter->Reset();
+        perf << tester.AAdd600k(set2,set4,set3,set5,set1);
+        filter->Reset();
+        perf << tester.AAdd600k(set3,set5,set2,set4,set1);
+        filter->Reset();
+        perf << tester.AAdd600k(set3,set2,set5,set4,set1);
+        // tester.initTester200();
+        // tester.getEntrySize();
+        // tester.Testsuite200keys();
+        // saveBitmap(filter);
+        conf << cf.toCSVString();
+        cout << "-------------END-------------" << endl;
+        cout << endl;
+    }
+
+    conf.close();
+    perf.close();
+#endif
+#ifdef AtomicII
+    ofstream perf("csvs/stdsuite-2-result.csv");
+    ofstream conf("csvs/stdsuite-2-config.csv");
+    if (!perf || !conf) {
+        cerr << "Cannot open file: std800k-result.csv or std800k-config.csv" << endl;
+        return 1;
+    }
+    Configuration cf;
+    TestCase tc;
+
+    perf << tc.getHeader();
+    conf << cf.getHeader();
+
+    for (auto filter : filters) {
+        cout << "Filter: " << filter->getFilterCode() << endl;
+        Tester tester(*filter);
+        Configuration cf(filter);
+        // tester.initTester800();
+        // tester.getEntrySize();
+        // tester.Testsuite800keys();
+
+        perf << tester.AAdd400k();
+        filter->Reset();
+        perf << tester.AAdd400k(set1,set3,set4,set2,set5);
+        filter->Reset();
+        perf << tester.AAdd400k(set2,set4,set3,set5,set1);
+        filter->Reset();
+        perf << tester.AAdd400k(set3,set5,set2,set4,set1);
+        filter->Reset();
+        perf << tester.AAdd400k(set3,set2,set5,set4,set1);
+        // tester.initTester200();
+        // tester.getEntrySize();
+        // tester.Testsuite200keys();
+        // saveBitmap(filter);
+        conf << cf.toCSVString();
+        cout << "-------------END-------------" << endl;
+        cout << endl;
+    }
+
+    conf.close();
+    perf.close();
+#endif
+#ifdef Icisn
+    // * Testmode : default
     for (auto filter : filters) {
         cout << "Filter: " << filter->getFilterCode() << endl;
         Tester tester(*filter);
@@ -756,9 +1098,28 @@ int main()
         // tester.getEntrySize();
         // tester.Testsuite200keys();
         // saveBitmap(filter);
-
         cout << "-------------END-------------" << endl;
         cout << endl;
     }
+#endif
+#ifdef default
+    // * Testmode : default
+    for (auto filter : filters) {
+        cout << "Filter: " << filter->getFilterCode() << endl;
+        Tester tester(*filter);
+        // tester.initTester800();
+        // tester.getEntrySize();
+        // tester.Testsuite800keys();
+
+        tester.ICISN_testsuite();
+
+        // tester.initTester200();
+        // tester.getEntrySize();
+        // tester.Testsuite200keys();
+        // saveBitmap(filter);
+        cout << "-------------END-------------" << endl;
+        cout << endl;
+    }
+#endif
     return 0;
 }

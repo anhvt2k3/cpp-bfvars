@@ -8,12 +8,12 @@ namespace BloomFilterModels {
     class StandardBloomFilter : public StaticFilter {
 public:
         StandardBloomFilter() {}
-        StandardBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
-            : StaticFilter(n, Defaults::BUCKET_SIZE, fpRate, countExist)  // Call the base class constructor directly
+        StandardBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0) 
+            : StaticFilter(n, Defaults::BUCKET_SIZE, fpRate, k, countExist)  // Call the base class constructor directly
         {}
 
-        void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0)  {
-            StaticFilter::Init(n, Defaults::BUCKET_SIZE, fpRate, countExist);
+        void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0)  {
+            StaticFilter::Init(n, Defaults::BUCKET_SIZE, fpRate, k, countExist);
         }
 
         string getFilterName() const {

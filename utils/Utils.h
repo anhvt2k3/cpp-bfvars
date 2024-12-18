@@ -48,6 +48,8 @@ namespace BloomFilterApp
             return static_cast<uint32_t>(optimalK);
         }
 
+        // : Optimal K calculation with respect to m and n
+
         static HashKernelReturnValue HashKernel(const std::vector<uint8_t>& data, const std::string& algorithm = "sha256")
         {
             if (algorithm == "murmur")

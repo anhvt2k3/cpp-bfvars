@@ -13,13 +13,13 @@ public:
                             uint8_t b, 
                             double fpRate, 
                             uint32_t countExist = 0) 
-            : StaticFilter(n, b, fpRate, countExist)  // Call the base class constructor directly
+            : StaticFilter(n, b, fpRate, k, countExist)  // Call the base class constructor directly
         {
             collisionFree = make_unique<Buckets>(uint32_t(BloomFilterApp::Utils::OptimalMCounting(n, fpRate)/Defaults::COLLIDE_REGION_SIZE), 1);
         }
 
-        void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
-            StaticFilter::Init(n, 1, fpRate, countExist);
+        void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0) override {
+            StaticFilter::Init(n, 1, fpRate, k, countExist);
             collisionFree = make_unique<Buckets>(uint32_t(BloomFilterApp::Utils::OptimalMCounting(n, fpRate)/Defaults::COLLIDE_REGION_SIZE), 1);
         }
 
@@ -36,9 +36,8 @@ public:
             return maxCapacity;
         }
 
-        // Returns the filter capacity
         uint32_t Size() const {
-            return m;
+            return buckets->count + collisionFree->count;
         }
 
         // Returns the number of hash functions
@@ -65,7 +64,7 @@ public:
 
             // Check if all hash function indices are set in the bucket array
             for (uint32_t i = 0; i < k; ++i) {
-                if (buckets->Get(uint32_t((lower + upper * i) % m)) == 0) {
+                if (buckets->Get((uint32_t)((lower + upper * i) % m)) == 0) {
                     return false;
                 }
             }
@@ -80,12 +79,12 @@ public:
             uint32_t lower = hashKernel.LowerBaseHash;
             uint32_t upper = hashKernel.UpperBaseHash;
 
-            // Set the K bits in the bucket array
+            // Set the K bits in the bucket array 
             for (uint32_t i = 0; i < k; ++i) {
                 // cout << "cbf-Adding: " << uint32_t((lower + upper * i) % m) << endl;
                 uint32_t bucketIndex = uint32_t((lower + upper * i) % m);
-                if (buckets->Get(bucketIndex)) {
-                    collisionFree->Set(uint32_t(bucketIndex/Defaults::COLLIDE_REGION_SIZE), 1);
+                if (buckets->Get(bucketIndex) == 1) {
+                    collisionFree->Set((uint32_t)(bucketIndex/Defaults::COLLIDE_REGION_SIZE), 1);
                 }
                 buckets->Set(bucketIndex, 1);
             }
@@ -102,7 +101,8 @@ public:
             bool removable = 0;
             for (uint32_t i = 0; i < k; ++i) {
                 uint32_t bucketIndex = uint32_t((lower + upper * i) % m);
-                if (collisionFree->Get(uint32_t(bucketIndex/Defaults::COLLIDE_REGION_SIZE)) == 0) {
+                auto collide_state = collisionFree->Get((uint32_t)(bucketIndex/Defaults::COLLIDE_REGION_SIZE));
+                if ( collide_state == 0) {
                     buckets->Set(bucketIndex, 0);
                     removable = 1;
                 }

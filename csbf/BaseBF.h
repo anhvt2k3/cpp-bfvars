@@ -7,6 +7,7 @@ namespace BloomFilterModels {
 // ! Filter base class
     class AbstractFilter {
     public:
+    // : these constants only required for static filter
         unique_ptr<Buckets> buckets; // Bucket array
         uint32_t m; // Filter size (number of buckets)
         uint32_t k; // Number of hash functions
@@ -16,6 +17,7 @@ namespace BloomFilterModels {
     // # Compulsory methods
         virtual string getFilterName() const = 0;
         virtual string getFilterCode() const = 0;
+        virtual uint32_t BucketSize() const = 0;
         virtual uint32_t Size() const = 0;
         virtual uint32_t Capacity() const = 0;
         virtual double FPrate() const = 0;
@@ -25,7 +27,7 @@ namespace BloomFilterModels {
         virtual AbstractFilter& Add(const std::vector<uint8_t>& data) = 0;
         // virtual AbstractFilter& Reset() = 0;
     // # Specialized methods
-        virtual void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) {
+        virtual void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0) {
             cout << "Unsupported method: Init" << endl;
         };
         virtual void Init(vector<vector<uint8_t>> data, uint32_t countExist = 0) {
@@ -34,23 +36,38 @@ namespace BloomFilterModels {
         virtual string getConfigure() {
             return "Unsupported method: getConfigure";
         };
-        virtual bool TestAndRemove(const std::vector<uint8_t>& data){
+        virtual bool TestAndRemove(const std::vector<uint8_t>& data) {
             cout << "Unsupported method: TestAndRemove" << endl;
             return false;
         };
+        virtual bool Remove(const std::vector<uint8_t>& data) {
+            cout << "Unsupported method: TestAndRemove" << endl;
+            return false;
+        };
+        virtual bool TestAndAdd(const std::vector<uint8_t>& data) {
+            cout << "Unsupported method: TestAndAdd" << endl;
+            return false;
+        };
+        virtual AbstractFilter& Reset() { return *this; };
+
     };
+
 // ! Filter parent class
     class StaticFilter : public AbstractFilter {
 protected:
         
 public:
-        virtual void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
+        virtual void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0) override {
+            //@ automatically destroy the last buckets and assign a new one
             this->buckets = make_unique<Buckets>(BloomFilterApp::Utils::OptimalMCounting(n, fpRate), b);
             this->m = BloomFilterApp::Utils::OptimalMCounting(n, fpRate);
-            this->k = BloomFilterApp::Utils::OptimalKCounting(fpRate);
+            this->k = k==0 ? BloomFilterApp::Utils::OptimalKCounting(fpRate):k;
             this->count = countExist;
             this->maxCapacity = n;
             this->fpRate = fpRate;
+        }
+        uint32_t BucketSize() const {
+            return buckets->bucketSize;
         }
 
         string getConfigure() {
@@ -66,12 +83,25 @@ public:
             return res;
         }
         StaticFilter() {}
-        StaticFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) {
-            this->Init(n, b, fpRate, countExist);
+        StaticFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0) {
+            this->Init(n, b, fpRate, k, countExist);
         }
     };
 
-    class DynamicFilter : public AbstractFilter {};
+    class DynamicFilter : public AbstractFilter {
+    public:
+        vector<shared_ptr<StaticFilter>> filters;
+
+        uint32_t BucketSize() const {
+            return filters.empty() ? 0 : filters.front()->BucketSize();
+
+        }
+
+        DynamicFilter& Reset() {
+            filters.clear();
+            return *this;
+        }
+    };
 
     class CuckooBase : public StaticFilter {
 protected:
@@ -87,7 +117,7 @@ public:
             return n / 0.95;
         }
         
-        virtual void Init(uint32_t n, uint8_t b = Defaults::Cuckoo::BUCKET_CAPACITY, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
+        virtual void Init(uint32_t n, uint8_t b = Defaults::Cuckoo::BUCKET_CAPACITY, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0) override {
             this->m = OptimalMComputing(n);
             this->k = 2;
             this->count = countExist;
@@ -112,8 +142,8 @@ public:
         }
 
         CuckooBase() {}
-        CuckooBase(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) {
-            this->Init(n, b, fpRate, countExist);
+        CuckooBase(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0) {
+            this->Init(n, b, fpRate, k, countExist);
         }
     };
 

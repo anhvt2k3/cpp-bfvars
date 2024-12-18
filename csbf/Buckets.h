@@ -69,15 +69,17 @@ public:
 
   // Set the value of a bucket
   Buckets& Set(uint32_t bucket, int value, string type = "MaxValue") {
-    if (type == "MaxValue") {
-      value = this->Max;
-    } else if (type == "ZeroValue") {
-      value = 0;
-    } else if (type == "Truncate") {
-      uint32_t mask = (1 << this->bucketSize) - 1;
-      value = value & mask;
+    if (value > this->Max) {
+      if (type == "MaxValue") {
+        value = this->Max;
+      } else if (type == "ZeroValue") {
+        value = 0;
+      } else if (type == "Truncate") {
+        uint32_t mask = (1 << this->bucketSize) - 1;
+        value = value & mask;
+      }
     }
-    SetBits(uint32_t(bucket * this->bucketSize), this->bucketSize, value);
+    SetBits((uint32_t)bucket * (uint32_t)this->bucketSize, this->bucketSize, (uint32_t)value);
     return *this;
   }
 

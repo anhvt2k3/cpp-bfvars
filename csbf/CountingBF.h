@@ -8,12 +8,12 @@ namespace BloomFilterModels {
     class CountingBloomFilter : public StaticFilter {
 public:
         CountingBloomFilter() {}
-        CountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
-            : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist)  // Call the base class constructor directly
+        CountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0) 
+            : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, k, countExist)  // Call the base class constructor directly
         {}
 
-        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0) override {
-            StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist);
+        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0) override {
+            StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, k, countExist);
         }
 
         string getFilterName() const {
@@ -160,12 +160,12 @@ public:
         // std::unique_ptr<HashAlgorithm> hash; // Hash algorithm object
 public:
         CryptoCountingBloomFilter() {}
-        CryptoCountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t countExist = 0) 
-            : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist)  // Call the base class constructor directly
+        CryptoCountingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0) 
+            : StaticFilter(n, Defaults::CBF_BUCKET_SIZE, fpRate, k, countExist)  // Call the base class constructor directly
         {}
 
-        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t countExist = 0)  {
-            StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, countExist);
+        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0)  {
+            StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, k, countExist);
         }
 
         string getFilterName() const {

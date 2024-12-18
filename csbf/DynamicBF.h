@@ -6,7 +6,7 @@ using namespace BloomFilterApp;
 namespace BloomFilterModels {
     
     class DynamicBloomFilter : public DynamicFilter {
-        vector<shared_ptr<CountingBloomFilter>> filters;
+        // vector<shared_ptr<CountingBloomFilter>> filters;
         double fp; // Target false-positive rate
         uint32_t c; // Maximum item count for each CountingBloomFilter
         // time_t syncDate; // Synchronization date
@@ -97,7 +97,7 @@ public:
         // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
         DynamicBloomFilter& Add(const std::vector<uint8_t>& data) {
-            if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter->Count() == filter->Capacity(); })) {
+            if (filters.empty() || std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter->Count() == filter->Capacity(); })) {
                 AddFilter(); // Add a new filter if all filters are full
             }
 
@@ -134,11 +134,16 @@ public:
             }
             return false;
         }
-
+        
+    DynamicBloomFilter& Reset() {
+        filters.clear(); // Clear the filter list
+        // AddFilter(); // Add a new filter
+        return *this;
+    }
     };
     
     class DynamicStdCountingBloomFilter : public DynamicFilter {
-        vector<shared_ptr<CountingBloomFilter>> filters;
+        // vector<shared_ptr<CountingBloomFilter>> filters;
         double fp; // Target false-positive rate
         uint32_t c; // Maximum item count for each CountingBloomFilter
         // time_t syncDate; // Synchronization date
@@ -228,7 +233,7 @@ public:
         // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
         DynamicStdCountingBloomFilter& Add(const std::vector<uint8_t>& data) {
-            if (std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter->Count() == filter->Capacity(); })) {
+            if (filters.empty() || std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter->Count() == filter->Capacity(); })) {
                 AddFilter(); // Add a new filter if all filters are full
             }
 
@@ -266,5 +271,11 @@ public:
             return false;
         }
 
+
+    DynamicStdCountingBloomFilter& Reset() {
+        filters.clear(); // Clear the filter list
+        // AddFilter(); // Add a new filter
+        return *this;
+    }
     };
 }
