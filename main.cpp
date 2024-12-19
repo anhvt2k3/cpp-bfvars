@@ -18,6 +18,9 @@ string set3 = "./data/dataset3.csv"; //# 3 => values: 400k -> 600k
 string set4 = "./data/dataset4.csv"; //# 4 => values: 600k -> 800k
 string set5 = "./data/dataset5.csv"; //# 5 => values: 800k -> 1M
 
+string algo = Defaults::HASH_ALGORITHM;
+string scheme = Defaults::HASH_SCHEME;
+
 string getVarName(string str) {
     if (str == "./data/dataset0.csv") return "set0";
     if (str == "./data/dataset1.csv") return "set1";
@@ -174,7 +177,10 @@ public:
         } else {
             if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
                 auto start = chrono::high_resolution_clock::now();
-                sf->Init(dataArray.size());
+                sf->Init(
+                    dataArray.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 
+                    0, 0, algo, scheme
+                );
                 auto end = chrono::high_resolution_clock::now();
                 total_elapsed += start - end;
             
@@ -220,7 +226,10 @@ public:
         }
             if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
                 auto start = chrono::high_resolution_clock::now();
-                sf->Init(dataArray.size());
+                sf->Init(
+                    dataArray.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 
+                    0, 0, algo, scheme
+                );
                 auto end = chrono::high_resolution_clock::now();
                 total_elapsed += start - end;
             
@@ -553,11 +562,18 @@ public:
         cout << "Test done running!" << endl;
     }
 
-    void ICISN_testsuite() 
+    void ICISN_testsuite(string _algo, string _scheme) 
     {
+        algo = _algo;
+        scheme = _scheme;
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration = now.time_since_epoch();
+        auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
         // # Initialization
-        ofstream conf("icisn-config.csv");
-        ofstream perf("icisn-result.csv");
+        string perfFilename = "icisn-result-" + to_string(millisec) + ".csv";
+        string confFilename = "icisn-config-" + to_string(millisec) + ".csv";
+        ofstream perf(perfFilename);
+        ofstream conf(confFilename);
         if (!perf || !conf) {
             cerr << "Failed to open output files" << endl;
             return;
@@ -572,7 +588,9 @@ public:
 
         // # Test node 1
         // Insert set S -> time
+        cout << "BEFORE ADDING" << endl;
         auto res = testAdding_v1(keys);
+        cout << "AFTER ADDING" << endl;
         auto elapsed = res.elapsed.count();
         cout << "Adding Set S Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
@@ -624,6 +642,7 @@ public:
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
+        tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
@@ -682,6 +701,7 @@ public:
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
+        tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
@@ -740,6 +760,7 @@ public:
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
+        tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
@@ -798,6 +819,7 @@ public:
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
+        tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
@@ -982,23 +1004,6 @@ void saveBitmap(const BloomFilterModels::AbstractFilter* filter)
 #define Icisn
 int main()
 {
-    vector<BloomFilterModels::AbstractFilter*> filters = {};
-    // XorFilter xf; filters.push_back(&xf); //! Stuck in the HashFunction-Data Reconciling process
-    // VariableIncrementBloomFilter vibf; filters.push_back(&vibf);
-    // StandardBloomFilter bf; filters.push_back(&bf);
-    // CountingBloomFilter scbf; filters.push_back(&scbf);
-    DeletableBloomFilter dlbf; filters.push_back(&dlbf);
-    // OneHashingBloomFilter ohbf; filters.push_back(&ohbf);
-    // CryptoCountingBloomFilter cbf; filters.push_back(&cbf);
-    
-    // DynamicStdCountingBloomFilter dsbf(400000); filters.push_back(&dsbf);
-    // ScalableStandardBloomFilter ssbf; filters.push_back(&ssbf);
-    // StandardCountingScalableBloomFilter scsbf; filters.push_back(&scsbf);
-    // ScalableDeletableBloomFilter sdlbf; filters.push_back(&sdlbf);
-    // CountingScalableBloomFilter csbf; filters.push_back(&csbf);
-    // DynamicBloomFilter dbf(400000); filters.push_back(&dbf);
-    // vector<BloomFilterModels::AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf, &dbf, &dsbf};
-
 #ifdef AtomicI
     ofstream perf("csvs/stdsuite-result.csv");
     ofstream conf("csvs/stdsuite-config.csv");
@@ -1085,40 +1090,57 @@ int main()
 #endif
 #ifdef Icisn
     // * Testmode : default
-    for (auto filter : filters) {
-        cout << "Filter: " << filter->getFilterCode() << endl;
-        Tester tester(*filter);
-        // tester.initTester800();
-        // tester.getEntrySize();
-        // tester.Testsuite800keys();
+    string hashFuncs[] = {
+        Hash32::ALGO_MURMUR3_32,
+        Hash32::ALGO_MURMUR3_128,
+        Hash32::ALGO_FNV1A,
+        Hash32::ALGO_SIPHASH,
+    };
 
-        tester.ICISN_testsuite();
+    string hashSchemes[] = {
+        Hash32::SCHEME_SERIAL,
+        Hash32::SCHEME_KIRSCH_MITZENMACHER,
+        Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
+    };
 
-        // tester.initTester200();
-        // tester.getEntrySize();
-        // tester.Testsuite200keys();
-        // saveBitmap(filter);
-        cout << "-------------END-------------" << endl;
-        cout << endl;
+    for (auto hashFunc : hashFuncs) {
+        for (auto hashScheme : hashSchemes) {
+            DeletableBloomFilter *dlbf = new DeletableBloomFilter();
+            cout << "Filter: " << dlbf->getFilterCode() << endl;
+            Tester tester(*dlbf);
+            tester.ICISN_testsuite(hashFunc, hashScheme);
+            cout << "Config of filter: " << dlbf->getConfigure() << endl;
+            delete(dlbf);
+        }
     }
+
 #endif
 #ifdef default
     // * Testmode : default
-    for (auto filter : filters) {
-        cout << "Filter: " << filter->getFilterCode() << endl;
-        Tester tester(*filter);
-        // tester.initTester800();
-        // tester.getEntrySize();
-        // tester.Testsuite800keys();
+    string hashFuncs[] = {
+        Hash32::ALGO_MURMUR3_32,
+        Hash32::ALGO_MURMUR3_128,
+        // Hash32::ALGO_SHA256,
+        // Hash32::ALGO_XXH3,
+        Hash32::ALGO_FNV1A,
+        Hash32::ALGO_SIPHASH,
+    };
 
-        tester.ICISN_testsuite();
+    string hashSchemes[] = {
+        Hash32::SCHEME_SERIAL,
+        Hash32::SCHEME_KIRSCH_MITZENMACHER,
+        Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
+    };
 
-        // tester.initTester200();
-        // tester.getEntrySize();
-        // tester.Testsuite200keys();
-        // saveBitmap(filter);
-        cout << "-------------END-------------" << endl;
-        cout << endl;
+    for (auto hashFunc : hashFuncs) {
+        for (auto hashScheme : hashSchemes) {
+            CountingBloomFilter *scbf = new CountingBloomFilter();
+            cout << "Filter: " << scbf->getFilterCode() << endl;
+            Tester tester(*scbf);
+            tester.ICISN_testsuite(hashFunc, hashScheme);
+
+            delete(scbf);
+        }
     }
 #endif
     return 0;

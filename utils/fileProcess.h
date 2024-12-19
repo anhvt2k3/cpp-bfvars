@@ -67,7 +67,7 @@ struct TestCase {
             << test_time << "/"
             << nof_collision << "/"
             << nof_removable << "/"
-            << nof_operand << "/"
+            << nof_operand
             << "\n";
         return oss.str();
     }
@@ -83,7 +83,7 @@ struct Configuration {
     }
 
     string getHeader() const {
-        return "FilterID/FilterSize/Capacity/NumHashFunctions/FalsePositiveRate/NumItemsAdded/BucketSize\n";
+        return "FilterID/FilterSize/Capacity/NumHashFunctions/FalsePositiveRate/NumItemsAdded/BucketSize/HashAlgo/HashScheme\n";
     }
 
     string toCSVString() const {
@@ -94,7 +94,9 @@ struct Configuration {
             << filter->K() << "/"
             << filter->FPrate() << "/"
             << filter->Count() << "/"
-            << filter->BucketSize() << "\n";
+            << filter->BucketSize() << "/"
+            << filter->getHashAlgo() << "/"
+            << filter->getHashScheme() << "\n";
         return oss.str();
     }
 
