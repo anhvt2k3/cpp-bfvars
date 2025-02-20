@@ -106,9 +106,15 @@ public:
                     buckets->Set(bucketIndex, 0);
                     removable = 1;
                 }
-            //@ if all buckets is not collision-free => non-removable
+            //? if all buckets is not collision-free => non-removable
+            
+            //: if a region is all empty in case each region is a counter, reset the region collide status
             }
             return removable;
+        }
+
+        void updateCollideStatus() {
+            auto bucketsRear = buckets->count;
         }
 
         bool TestAndRemove(const vector<uint8_t>& data) {

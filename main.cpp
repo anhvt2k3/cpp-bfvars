@@ -5,6 +5,7 @@
 #include <string>
 #include <chrono>
 #include <iomanip>
+#include <algorithm>
 
 #include "csbf/index.h"
 #include "utils/fileProcess.h"
@@ -135,6 +136,13 @@ public:
         this->getEntrySize();
     }
 
+    // keys: set1, set2 || nonkeys: set3, set4
+    void initTester600() {
+        this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3) );
+        this->nonkeys = mergeVectors( readCSV(set4), readCSV(set5) );
+        this->getEntrySize();
+    }
+
     void getEntrySize() {
         cout << "Keys: " << keys.size() << endl;
         cout << "NonKeys: " << nonkeys.size() << endl;
@@ -152,6 +160,16 @@ public:
     // Return number of hash functions
     uint32_t HashFunctionCount() {
         return bf.K();
+    }
+
+    chrono::duration<double> BinarySearchMeasure(vector<string> dataArray) {
+        auto start = chrono::high_resolution_clock::now();
+        for (auto item : dataArray)
+        {
+            auto _ = binary_search(keys.begin(), keys.end(), item);
+        }
+        auto end = chrono::high_resolution_clock::now();
+        return end - start;
     }
 
     /*
@@ -567,19 +585,20 @@ public:
         TestCase tc;
         perf << tc.getHeader();
 
-        this->initTester400();
+        this->initTester600();
+        auto dataArray = mergeVectors(readCSV(set1),readCSV(set2),readCSV(set3),readCSV(set4),readCSV(set5));
         cout << endl;
 
         // # Test node 1
         // Insert set S -> time
         auto res = testAdding_v1(keys);
         auto elapsed = res.elapsed.count();
-        cout << "Adding Set S Elapsed time: " << elapsed << "s" << endl;
+        cout << "Adding 1 Set Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
         tc.nof_collision = res.nof_collision;
         tc.nof_operand = res.testCount;
 
-        // : MEASUREMENT
+        // # MEASUREMENT
         long long int fcount = 0;
         long long int testCount = 0;
         Result result_1;
@@ -597,7 +616,7 @@ public:
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set3), false);
+        result_1 = TestFP(readCSV(set3), true);
         fcount += result_1.FP.size();
         tc.f3 = result_1.FP.size();
         testCount += result_1.testCount;
@@ -609,36 +628,46 @@ public:
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
+        result_1 = TestFP(readCSV(set5), false);
+        fcount += result_1.FP.size();
+        tc.f4 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
         float accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
         cout << fixed << setprecision(6);
         cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
+        auto bisearch_time = BinarySearchMeasure(dataArray).count();
+        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
         // Record the removal performance into TestCase
         tc.test_case = "InsertSet1,2";
         // tc.adding_time = elapsed;
-        tc.key_set = "1,2";
-        tc.nonkey_set = "3,4";
+        tc.key_set = "1,2,3";
+        tc.nonkey_set = "4,5";
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
+        tc.binsearch_time = bisearch_time;
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
-        // : END MEASUREMENT
+        // # END MEASUREMENT
 
         // # Test node 2
         // Remove set R -> time
-        res = testRemove_v1(readCSV(set1));
+        res = testRemove_v1(readCSV(set1)); 
+        keys = mergeVectors(readCSV(set2),readCSV(set3));
         elapsed = res.elapsed.count();
-        cout << "Removing Half Set S Elapsed time: " << elapsed << "s" << endl;
+        cout << "Removing 1 Set Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
         tc.nof_removable = res.nof_removable;
         tc.nof_operand = res.testCount;
 
-        // : MEASUREMENT
+        // # MEASUREMENT
         // Check set S-R over U -> accuracy
         fcount = 0;
         testCount = 0;
@@ -656,7 +685,7 @@ public:
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set3), false);
+        result_1 = TestFP(readCSV(set3), true);
         fcount += result_1.FP.size();
         tc.f3 = result_1.FP.size();
         testCount += result_1.testCount;
@@ -668,93 +697,45 @@ public:
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
+        result_1 = TestFP(readCSV(set5), false);
+        fcount += result_1.FP.size();
+        tc.f4 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
         accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
         cout << fixed << setprecision(6);
         cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
+        bisearch_time = BinarySearchMeasure(dataArray).count();
+        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
         // Record the removal performance into TestCase
         tc.test_case = "RemoveSet1";
-        tc.key_set = "2";
-        tc.nonkey_set = "1,3,4";
+        tc.key_set = "2,3";
+        tc.nonkey_set = "1,4,5";
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
+        tc.binsearch_time = bisearch_time;
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
-        // : END MEASUREMENT
+        // # END MEASUREMENT
 
         // # Test node 3
         // Insert set S -> time
         res = testInserting_v1(readCSV(set1));
+        keys = mergeVectors(readCSV(set1),readCSV(set2),readCSV(set3));
         elapsed = res.elapsed.count();
         cout << "Inserting Half Set S Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
         tc.nof_collision = res.nof_collision;
         tc.nof_operand = res.testCount;
 
-        // : MEASUREMENT
-        fcount = 0;
-        testCount = 0;
-        time = chrono::duration<double>(0);
-
-        result_1 = TestFP(readCSV(set1), true);
-        fcount += result_1.FP.size();
-        tc.f1 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(readCSV(set2), true);
-        fcount += result_1.FP.size();
-        tc.f2 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(readCSV(set3), false);
-        fcount += result_1.FP.size();
-        tc.f3 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(readCSV(set4), false);
-        fcount += result_1.FP.size();
-        tc.f4 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
-        cout << fixed << setprecision(6);
-        cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
-        cout << "Total Test Count: " << testCount << endl;
-        cout << "Total Elapsed Time: " << time.count() << "s" << endl;
-        cout << endl;
-
-        // Record the removal performance into TestCase
-        tc.test_case = "InsertSet1";
-        // tc.adding_time = elapsed;
-        tc.key_set = "1,2";
-        tc.nonkey_set = "3,4";
-        tc.test_size = testCount;
-        tc.accuracy = accuracy;
-        tc.test_time = time.count();
-
-        // Write performance data to the CSV
-        perf << tc.toCSVString(); tc.reset();
-        // : END MEASUREMENT
-        
-        // # Test node 4
-        // Insert set S -> time
-        res = testInserting_v1(readCSV(set3));
-        elapsed = res.elapsed.count();
-        cout << "Inserting Set 3 Elapsed time: " << elapsed << "s" << endl;
-        tc.adding_time = elapsed;
-        tc.nof_collision = res.nof_collision;
-        tc.nof_operand = res.testCount;
-
-        // : MEASUREMENT
+        // # MEASUREMENT
         fcount = 0;
         testCount = 0;
         time = chrono::duration<double>(0);
@@ -783,25 +764,102 @@ public:
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
+        result_1 = TestFP(readCSV(set5), false);
+        fcount += result_1.FP.size();
+        tc.f4 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
         accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
         cout << fixed << setprecision(6);
         cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
+        bisearch_time = BinarySearchMeasure(dataArray).count();
+        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
         // Record the removal performance into TestCase
-        tc.test_case = "InsertSet3[OVERSIZE]";
+        tc.test_case = "InsertSet1";
         // tc.adding_time = elapsed;
         tc.key_set = "1,2,3";
-        tc.nonkey_set = "4";
+        tc.nonkey_set = "4,5";
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
+        tc.binsearch_time = bisearch_time;
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
-        // : END MEASUREMENT
+        // # END MEASUREMENT
+        
+        // # Test node 4
+        // Insert set S -> time
+        res = testInserting_v1(readCSV(set4));
+        keys = mergeVectors(readCSV(set1),readCSV(set2),readCSV(set3),readCSV(set4));
+        elapsed = res.elapsed.count();
+        cout << "Inserting Set 3 Elapsed time: " << elapsed << "s" << endl;
+        tc.adding_time = elapsed;
+        tc.nof_collision = res.nof_collision;
+        tc.nof_operand = res.testCount;
+
+        // # MEASUREMENT
+        fcount = 0;
+        testCount = 0;
+        time = chrono::duration<double>(0);
+
+        result_1 = TestFP(readCSV(set1), true);
+        fcount += result_1.FP.size();
+        tc.f1 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(set2), true);
+        fcount += result_1.FP.size();
+        tc.f2 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(set3), true);
+        fcount += result_1.FP.size();
+        tc.f3 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(set4), true);
+        fcount += result_1.FP.size();
+        tc.f4 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        result_1 = TestFP(readCSV(set5), false);
+        fcount += result_1.FP.size();
+        tc.f4 = result_1.FP.size();
+        testCount += result_1.testCount;
+        time += result_1.elapsed;
+
+        accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
+        cout << fixed << setprecision(6);
+        cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
+        cout << "Total Test Count: " << testCount << endl;
+        cout << "Total Elapsed Time: " << time.count() << "s" << endl;
+        bisearch_time = BinarySearchMeasure(dataArray).count();
+        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
+        cout << endl;
+
+        // Record the removal performance into TestCase
+        tc.test_case = "InsertSet4";
+        // tc.adding_time = elapsed;
+        tc.key_set = "1,2,3,4";
+        tc.nonkey_set = "5";
+        tc.test_size = testCount;
+        tc.accuracy = accuracy;
+        tc.test_time = time.count();
+        tc.binsearch_time = bisearch_time;
+
+        // Write performance data to the CSV
+        perf << tc.toCSVString(); tc.reset();
+        // # END MEASUREMENT
 
         Configuration cf(&bf); conf << cf.getHeader();
         conf << cf.toCSVString();
@@ -830,7 +888,7 @@ public:
         tc.filterID = bf.getFilterCode();
         tc.adding_time = elapsed;
 
-        // : MEASUREMENT
+        // # MEASUREMENT
         long long int fcount = 0;
         long long int testCount = 0;
         Result result_1;
@@ -876,13 +934,13 @@ public:
         // Record the removal performance into TestCase
         tc.test_case = "Std Test";
         // tc.adding_time = elapsed;
-        // : to be fixed
+        // # to be fixed
         tc.key_set = getVarName(skey1) + "+" + getVarName(skey2) + "+" + getVarName(skey3);
         tc.nonkey_set = getVarName(snkey1) + "+" + getVarName(snkey2);
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
-        // : END MEASUREMENT
+        // # END MEASUREMENT
 
         cout << getConfig();
         cout << "Test done running!" << endl;
@@ -906,7 +964,7 @@ public:
         tc.filterID = bf.getFilterCode();
         tc.adding_time = elapsed;
 
-        // : MEASUREMENT
+        // # MEASUREMENT
         long long int fcount = 0;
         long long int testCount = 0;
         Result result_1;
@@ -952,13 +1010,13 @@ public:
         // Record the removal performance into TestCase
         tc.test_case = "Std Test 2";
         // tc.adding_time = elapsed;
-        // : to be fixed
+        // # to be fixed
         tc.key_set = getVarName(skey1) + "+" + getVarName(skey2) ;
         tc.nonkey_set = getVarName(snkey1) + "+" + getVarName(snkey2) + "+" + getVarName(snkey3);
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
-        // : END MEASUREMENT
+        // # END MEASUREMENT
 
         cout << getConfig();
         cout << "Test done running!" << endl;

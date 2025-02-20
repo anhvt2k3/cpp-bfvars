@@ -14,7 +14,7 @@ namespace Defaults {
     const uint32_t MAX_COUNT_NUMBER = 200000;
 
     //# DeletableBF constants
-    const uint32_t COLLIDE_REGION_SIZE = 1;
+    const uint32_t COLLIDE_REGION_SIZE = 2;
 
     //# CuckooFilter constants
 namespace Cuckoo {
