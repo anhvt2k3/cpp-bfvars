@@ -52,6 +52,14 @@ std::vector<std::string> mergeVectors(const Vectors&... vectors) {
     return mergedVector;
 }
 
+void doVectorSubstraction(std::vector<std::string>& dataArray, const std::vector<std::string>& subtractArray) {
+    for (const std::string& itemToSubtract : subtractArray) {
+        auto it = std::find(dataArray.begin(), dataArray.end(), itemToSubtract);
+        if (it != dataArray.end()) {
+            dataArray.erase(it);
+        }
+    }
+}
 
 vector<string> readCSV(const string& filename)
 {
@@ -103,6 +111,9 @@ public:
 
     vector<string> nonkeys;
 
+    vector<string> dataArray = mergeVectors(readCSV(set1),readCSV(set2),readCSV(set3),readCSV(set4),readCSV(set5));
+    double binsearch_operatetime;
+
     vector<uint8_t> getAsciiBytes(const string& str) {
         vector<uint8_t> bytes(str.begin(), str.end());
         // cout << "String: " << str << endl;
@@ -120,28 +131,40 @@ public:
 
     // keys: set1, set2, set3, set4 || nonkeys: set5
     void initTester800() {
+        auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3), readCSV(set4));
+        auto end = chrono::high_resolution_clock::now();
+        binsearch_operatetime = (end-start).count();
         this->nonkeys = readCSV(set5);
         this->getEntrySize();
     }
 
     // keys: set1 || nonkeys: set2, set3, set4
     void initTester200() {
+        auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1));
+        auto end = chrono::high_resolution_clock::now();
+        binsearch_operatetime = (end-start).count();
         this->nonkeys = mergeVectors(readCSV(set2), readCSV(set3), readCSV(set4));
         this->getEntrySize();
     }
 
     // keys: set1, set2 || nonkeys: set3, set4
     void initTester400() {
+        auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1), readCSV(set2));
+        auto end = chrono::high_resolution_clock::now();
+        binsearch_operatetime = (end-start).count();
         this->nonkeys = mergeVectors(readCSV(set3), readCSV(set4));
         this->getEntrySize();
     }
 
     // keys: set1, set2 || nonkeys: set3, set4
     void initTester600() {
+        auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3) );
+        auto end = chrono::high_resolution_clock::now();
+        binsearch_operatetime = (end-start).count();
         this->nonkeys = mergeVectors( readCSV(set4), readCSV(set5) );
         this->getEntrySize();
     }
@@ -601,8 +624,7 @@ public:
         TestCase tc;
         perf << tc.getHeader();
 
-        this->initTester600();
-        auto dataArray = mergeVectors(readCSV(set1),readCSV(set2),readCSV(set3),readCSV(set4),readCSV(set5));
+        this->initTester800();
         cout << endl;
 
         // # Test node 1
@@ -679,7 +701,7 @@ public:
         // # Test node 2
         // Remove set R -> time
         res = testRemove_v1(readCSV(set1)); 
-        keys = mergeVectors(readCSV(set2),readCSV(set3));
+        keys = mergeVectors(readCSV(set2),readCSV(set3),readCSV(set4));
         elapsed = res.elapsed.count();
         cout << "Removing 1 Set Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
