@@ -19,6 +19,9 @@ string set3 = "./data/dataset3.csv"; //# 3 => values: 400k -> 600k
 string set4 = "./data/dataset4.csv"; //# 4 => values: 600k -> 800k
 string set5 = "./data/dataset5.csv"; //# 5 => values: 800k -> 1M
 
+string algo = Defaults::HASH_ALGORITHM;
+string scheme = Defaults::HASH_SCHEME;
+
 string getVarName(string str) {
     if (str == "./data/dataset0.csv") return "set0";
     if (str == "./data/dataset1.csv") return "set1";
@@ -49,6 +52,14 @@ std::vector<std::string> mergeVectors(const Vectors&... vectors) {
     return mergedVector;
 }
 
+void doVectorSubstraction(std::vector<std::string>& dataArray, const std::vector<std::string>& subtractArray) {
+    for (const std::string& itemToSubtract : subtractArray) {
+        auto it = std::find(dataArray.begin(), dataArray.end(), itemToSubtract);
+        if (it != dataArray.end()) {
+            dataArray.erase(it);
+        }
+    }
+}
 
 vector<string> readCSV(const string& filename)
 {
@@ -100,6 +111,9 @@ public:
 
     vector<string> nonkeys;
 
+    vector<string> dataArray = mergeVectors(readCSV(set1),readCSV(set2),readCSV(set3),readCSV(set4),readCSV(set5));
+    double binsearch_operatetime;
+
     vector<uint8_t> getAsciiBytes(const string& str) {
         vector<uint8_t> bytes(str.begin(), str.end());
         // cout << "String: " << str << endl;
@@ -117,28 +131,40 @@ public:
 
     // keys: set1, set2, set3, set4 || nonkeys: set5
     void initTester800() {
+        auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3), readCSV(set4));
+        auto end = chrono::high_resolution_clock::now();
+        binsearch_operatetime = (end-start).count();
         this->nonkeys = readCSV(set5);
         this->getEntrySize();
     }
 
     // keys: set1 || nonkeys: set2, set3, set4
     void initTester200() {
+        auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1));
+        auto end = chrono::high_resolution_clock::now();
+        binsearch_operatetime = (end-start).count();
         this->nonkeys = mergeVectors(readCSV(set2), readCSV(set3), readCSV(set4));
         this->getEntrySize();
     }
 
     // keys: set1, set2 || nonkeys: set3, set4
     void initTester400() {
+        auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1), readCSV(set2));
+        auto end = chrono::high_resolution_clock::now();
+        binsearch_operatetime = (end-start).count();
         this->nonkeys = mergeVectors(readCSV(set3), readCSV(set4));
         this->getEntrySize();
     }
 
     // keys: set1, set2 || nonkeys: set3, set4
     void initTester600() {
+        auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3) );
+        auto end = chrono::high_resolution_clock::now();
+        binsearch_operatetime = (end-start).count();
         this->nonkeys = mergeVectors( readCSV(set4), readCSV(set5) );
         this->getEntrySize();
     }
@@ -192,7 +218,10 @@ public:
         } else {
             if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
                 auto start = chrono::high_resolution_clock::now();
-                sf->Init(dataArray.size());
+                sf->Init(
+                    dataArray.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 
+                    0, 0, algo, scheme
+                );
                 auto end = chrono::high_resolution_clock::now();
                 total_elapsed += start - end;
             
@@ -238,7 +267,10 @@ public:
         }
             if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
                 auto start = chrono::high_resolution_clock::now();
-                sf->Init(dataArray.size());
+                sf->Init(
+                    dataArray.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 
+                    0, 0, algo, scheme
+                );
                 auto end = chrono::high_resolution_clock::now();
                 total_elapsed += start - end;
             
@@ -571,11 +603,18 @@ public:
         cout << "Test done running!" << endl;
     }
 
-    void ICISN_testsuite() 
+    void ICISN_testsuite(string _algo, string _scheme) 
     {
+        algo = _algo;
+        scheme = _scheme;
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration = now.time_since_epoch();
+        auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
         // # Initialization
-        ofstream conf("icisn-config.csv");
-        ofstream perf("icisn-result.csv");
+        string perfFilename = "icisn-result-" + to_string(millisec) + ".csv";
+        string confFilename = "icisn-config-" + to_string(millisec) + ".csv";
+        ofstream perf(perfFilename);
+        ofstream conf(confFilename);
         if (!perf || !conf) {
             cerr << "Failed to open output files" << endl;
             return;
@@ -585,13 +624,14 @@ public:
         TestCase tc;
         perf << tc.getHeader();
 
-        this->initTester600();
-        auto dataArray = mergeVectors(readCSV(set1),readCSV(set2),readCSV(set3),readCSV(set4),readCSV(set5));
+        this->initTester800();
         cout << endl;
 
         // # Test node 1
         // Insert set S -> time
+        cout << "BEFORE ADDING" << endl;
         auto res = testAdding_v1(keys);
+        cout << "AFTER ADDING" << endl;
         auto elapsed = res.elapsed.count();
         cout << "Adding 1 Set Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
@@ -652,6 +692,7 @@ public:
         tc.accuracy = accuracy;
         tc.test_time = time.count();
         tc.binsearch_time = bisearch_time;
+        tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
@@ -660,7 +701,7 @@ public:
         // # Test node 2
         // Remove set R -> time
         res = testRemove_v1(readCSV(set1)); 
-        keys = mergeVectors(readCSV(set2),readCSV(set3));
+        keys = mergeVectors(readCSV(set2),readCSV(set3),readCSV(set4));
         elapsed = res.elapsed.count();
         cout << "Removing 1 Set Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
@@ -720,6 +761,7 @@ public:
         tc.accuracy = accuracy;
         tc.test_time = time.count();
         tc.binsearch_time = bisearch_time;
+        tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
@@ -788,6 +830,7 @@ public:
         tc.accuracy = accuracy;
         tc.test_time = time.count();
         tc.binsearch_time = bisearch_time;
+        tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
@@ -856,6 +899,7 @@ public:
         tc.accuracy = accuracy;
         tc.test_time = time.count();
         tc.binsearch_time = bisearch_time;
+        tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
@@ -1040,23 +1084,6 @@ void saveBitmap(const BloomFilterModels::AbstractFilter* filter)
 #define Icisn
 int main()
 {
-    vector<BloomFilterModels::AbstractFilter*> filters = {};
-    // XorFilter xf; filters.push_back(&xf); //! Stuck in the HashFunction-Data Reconciling process
-    // VariableIncrementBloomFilter vibf; filters.push_back(&vibf);
-    // StandardBloomFilter bf; filters.push_back(&bf);
-    // CountingBloomFilter scbf; filters.push_back(&scbf);
-    DeletableBloomFilter dlbf; filters.push_back(&dlbf);
-    // OneHashingBloomFilter ohbf; filters.push_back(&ohbf);
-    // CryptoCountingBloomFilter cbf; filters.push_back(&cbf);
-    
-    // DynamicStdCountingBloomFilter dsbf(400000); filters.push_back(&dsbf);
-    // ScalableStandardBloomFilter ssbf; filters.push_back(&ssbf);
-    // StandardCountingScalableBloomFilter scsbf; filters.push_back(&scsbf);
-    // ScalableDeletableBloomFilter sdlbf; filters.push_back(&sdlbf);
-    // CountingScalableBloomFilter csbf; filters.push_back(&csbf);
-    // DynamicBloomFilter dbf(400000); filters.push_back(&dbf);
-    // vector<BloomFilterModels::AbstractFilter*> filters = {&bf, &cbf, &scbf, &csbf, &scsbf, &dbf, &dsbf};
-
 #ifdef AtomicI
     ofstream perf("csvs/stdsuite-result.csv");
     ofstream conf("csvs/stdsuite-config.csv");
@@ -1143,40 +1170,57 @@ int main()
 #endif
 #ifdef Icisn
     // * Testmode : default
-    for (auto filter : filters) {
-        cout << "Filter: " << filter->getFilterCode() << endl;
-        Tester tester(*filter);
-        // tester.initTester800();
-        // tester.getEntrySize();
-        // tester.Testsuite800keys();
+    string hashFuncs[] = {
+        Hash32::ALGO_MURMUR3_32,
+        Hash32::ALGO_MURMUR3_128,
+        Hash32::ALGO_FNV1A,
+        Hash32::ALGO_SIPHASH,
+    };
 
-        tester.ICISN_testsuite();
+    string hashSchemes[] = {
+        Hash32::SCHEME_SERIAL,
+        Hash32::SCHEME_KIRSCH_MITZENMACHER,
+        Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
+    };
 
-        // tester.initTester200();
-        // tester.getEntrySize();
-        // tester.Testsuite200keys();
-        // saveBitmap(filter);
-        cout << "-------------END-------------" << endl;
-        cout << endl;
+    for (auto hashFunc : hashFuncs) {
+        for (auto hashScheme : hashSchemes) {
+            DeletableBloomFilter *dlbf = new DeletableBloomFilter();
+            cout << "Filter: " << dlbf->getFilterCode() << endl;
+            Tester tester(*dlbf);
+            tester.ICISN_testsuite(hashFunc, hashScheme);
+            cout << "Config of filter: " << dlbf->getConfigure() << endl;
+            delete(dlbf);
+        }
     }
+
 #endif
 #ifdef default
     // * Testmode : default
-    for (auto filter : filters) {
-        cout << "Filter: " << filter->getFilterCode() << endl;
-        Tester tester(*filter);
-        // tester.initTester800();
-        // tester.getEntrySize();
-        // tester.Testsuite800keys();
+    string hashFuncs[] = {
+        Hash32::ALGO_MURMUR3_32,
+        Hash32::ALGO_MURMUR3_128,
+        // Hash32::ALGO_SHA256,
+        // Hash32::ALGO_XXH3,
+        Hash32::ALGO_FNV1A,
+        Hash32::ALGO_SIPHASH,
+    };
 
-        tester.ICISN_testsuite();
+    string hashSchemes[] = {
+        Hash32::SCHEME_SERIAL,
+        Hash32::SCHEME_KIRSCH_MITZENMACHER,
+        Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
+    };
 
-        // tester.initTester200();
-        // tester.getEntrySize();
-        // tester.Testsuite200keys();
-        // saveBitmap(filter);
-        cout << "-------------END-------------" << endl;
-        cout << endl;
+    for (auto hashFunc : hashFuncs) {
+        for (auto hashScheme : hashSchemes) {
+            CountingBloomFilter *scbf = new CountingBloomFilter();
+            cout << "Filter: " << scbf->getFilterCode() << endl;
+            Tester tester(*scbf);
+            tester.ICISN_testsuite(hashFunc, hashScheme);
+
+            delete(scbf);
+        }
     }
 #endif
     return 0;

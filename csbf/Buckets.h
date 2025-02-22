@@ -23,12 +23,19 @@ public:
           count(count),
           Max((1 << bucketSize) - 1)
   {  
+    cout << "Creating bucket" << endl;
     this->count = count;
     // Calculate the size of the data buffer in bytes
-    int dataSize = ((bucketSize + 8 - 1) / 8);
+    int dataSize = ((bucketSize + 7) / 8);
     this->Data = (uint8_t*)calloc(count, dataSize);
     
     this->recheck_data();
+    cout <<  "Created bucket: " 
+      << "Data?=" << (this->Data != nullptr)
+      << "/count=" << count 
+      << "/dataSize=" << dataSize 
+      << "/bucketSize=" << bucketSize 
+      << endl;
   }
 
   Buckets initData(const uint32_t data[], uint32_t n) {
@@ -53,9 +60,15 @@ public:
   // Get the maximum value a bucket can hold
   uint32_t MaxBucketValue() { return this->Max; }
 
+  // Get current number of buckets
+  uint32_t BucketCount() { return this->count; }
+
   // Increment the value of a bucket
   Buckets& Increment(uint32_t bucket, int delta) {
-    int val = (int)(GetBits(uint32_t(bucket * this->bucketSize), this->bucketSize) + delta);
+    uint32_t offset = uint32_t(bucket * this->bucketSize);
+    uint32_t val = GetBits(offset, this->bucketSize);
+
+    val = (int)(val + delta);
 
     if (val > this->Max) {
       val = this->Max;
@@ -130,5 +143,9 @@ public:
   }
 
   // Destructor to free the allocated memory
-  ~Buckets() {  }
+  ~Buckets() {
+    cout << "Destructing bucket" << endl;
+    free(Data); 
+    cout << "Destructed bucket" << endl;
+  }
 };
