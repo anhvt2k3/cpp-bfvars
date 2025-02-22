@@ -135,7 +135,8 @@ public:
         auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3), readCSV(set4));
         auto end = chrono::high_resolution_clock::now();
-        binsearch_operatetime = (end-start).count();
+        auto duration = chrono::duration<double>(end - start);
+        binsearch_operatetime = duration.count();
         this->nonkeys = readCSV(set5);
         this->getEntrySize();
     }
@@ -145,7 +146,8 @@ public:
         auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1));
         auto end = chrono::high_resolution_clock::now();
-        binsearch_operatetime = (end-start).count();
+        auto duration = chrono::duration<double>(end - start);
+        binsearch_operatetime = duration.count();
         this->nonkeys = mergeVectors(readCSV(set2), readCSV(set3), readCSV(set4));
         this->getEntrySize();
     }
@@ -155,7 +157,8 @@ public:
         auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1), readCSV(set2));
         auto end = chrono::high_resolution_clock::now();
-        binsearch_operatetime = (end-start).count();
+        auto duration = chrono::duration<double>(end - start);
+        binsearch_operatetime = duration.count();
         this->nonkeys = mergeVectors(readCSV(set3), readCSV(set4));
         this->getEntrySize();
     }
@@ -165,7 +168,8 @@ public:
         auto start = chrono::high_resolution_clock::now();
         this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3) );
         auto end = chrono::high_resolution_clock::now();
-        binsearch_operatetime = (end-start).count();
+        auto duration = chrono::duration<double>(end - start);
+        binsearch_operatetime = duration.count();
         this->nonkeys = mergeVectors( readCSV(set4), readCSV(set5) );
         this->getEntrySize();
     }
@@ -681,6 +685,7 @@ public:
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         auto bisearch_time = BinarySearchMeasure(dataArray).count();
+        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
@@ -693,6 +698,7 @@ public:
         tc.accuracy = accuracy;
         tc.test_time = time.count();
         tc.binsearch_time = bisearch_time;
+        tc.binsearch_operatetime = binsearch_operatetime;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
@@ -751,6 +757,7 @@ public:
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         bisearch_time = BinarySearchMeasure(dataArray).count();
+        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
@@ -762,6 +769,7 @@ public:
         tc.accuracy = accuracy;
         tc.test_time = time.count();
         tc.binsearch_time = bisearch_time;
+        tc.binsearch_operatetime = binsearch_operatetime;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
@@ -819,6 +827,7 @@ public:
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         bisearch_time = BinarySearchMeasure(dataArray).count();
+        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
@@ -831,6 +840,7 @@ public:
         tc.accuracy = accuracy;
         tc.test_time = time.count();
         tc.binsearch_time = bisearch_time;
+        tc.binsearch_operatetime = binsearch_operatetime;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
@@ -888,6 +898,7 @@ public:
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         bisearch_time = BinarySearchMeasure(dataArray).count();
+        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
@@ -900,6 +911,7 @@ public:
         tc.accuracy = accuracy;
         tc.test_time = time.count();
         tc.binsearch_time = bisearch_time;
+        tc.binsearch_operatetime = binsearch_operatetime;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
@@ -1179,9 +1191,9 @@ int main()
     };
 
     string hashSchemes[] = {
-        Hash32::SCHEME_SERIAL,
+        // Hash32::SCHEME_SERIAL,
         Hash32::SCHEME_KIRSCH_MITZENMACHER,
-        Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
+        // Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
     };
 
     for (auto hashFunc : hashFuncs) {
