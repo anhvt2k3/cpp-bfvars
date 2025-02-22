@@ -72,7 +72,7 @@ struct TestCase {
             << nof_collision << "/"
             << nof_removable << "/"
             << nof_operand << "/"
-            << operation_time << "/"
+            << std::fixed << std::setprecision(6) << operation_time << "/"
             << binsearch_time << "/"
             << "\n";
         return oss.str();

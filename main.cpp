@@ -9,6 +9,7 @@
 
 #include "csbf/index.h"
 #include "utils/fileProcess.h"
+#include <unordered_set>
 using namespace std;
 using namespace BloomFilterModels;
 
@@ -136,7 +137,7 @@ public:
             keys.push_back(item);
         }
         auto end = chrono::high_resolution_clock::now();
-        binsearch_operatetime = (end-start).count();
+        binsearch_operatetime = chrono::duration<double>(end-start).count();
         this->nonkeys = (set5);
         this->getEntrySize();
     }
@@ -149,7 +150,7 @@ public:
             keys.push_back(item);
         }
         auto end = chrono::high_resolution_clock::now();
-        binsearch_operatetime = (end-start).count();
+        binsearch_operatetime = chrono::duration<double>(end-start).count();
         this->nonkeys = mergeVectors((set2), (set3), (set4));
         this->getEntrySize();
     }
@@ -162,7 +163,7 @@ public:
             keys.push_back(item);
         }
         auto end = chrono::high_resolution_clock::now();
-        binsearch_operatetime = (end-start).count();
+        binsearch_operatetime = chrono::duration<double>(end-start).count();
         this->nonkeys = mergeVectors((set3), (set4));
         this->getEntrySize();
     }
@@ -175,7 +176,7 @@ public:
             keys.push_back(item);
         }
         auto end = chrono::high_resolution_clock::now();
-        binsearch_operatetime = (end-start).count();
+        binsearch_operatetime = chrono::duration<double>(end-start).count();
         this->nonkeys = mergeVectors( (set4), (set5) );
         this->getEntrySize();
     }
@@ -207,7 +208,7 @@ public:
             keys.push_back(item);
         }
         auto end = chrono::high_resolution_clock::now();
-        binsearch_operatetime = (end - start).count();
+        binsearch_operatetime = chrono::duration<double>(end - start).count();
     }
 
     // do BSRead and save data to binsearch_operatetime
@@ -224,16 +225,18 @@ public:
     // do BSRemove and save data to binsearch_operatetime
     void BinarySearchRemove(const std::vector<std::string>& subtractArray) {
         auto start = std::chrono::high_resolution_clock::now();
-    
-        for (const std::string& itemToSubtract : subtractArray) {
-            auto it = std::lower_bound(keys.begin(), keys.end(), itemToSubtract);
-            if (it != keys.end() && *it == itemToSubtract) {  // Ensure the element is actually present
-                keys.erase(it);
-            }
-        }
-    
+        
+        cout << "binary remove working fine \n" ;
+        // Use a set for fast lookup of elements to remove
+        std::unordered_set<std::string> toRemove(subtractArray.begin(), subtractArray.end());
+
+        // Use std::erase_if (C++20) for efficiency, or manual erase-remove idiom for older versions
+        auto it = std::remove_if(keys.begin(), keys.end(),
+            [&toRemove](const std::string& key) { return toRemove.count(key) > 0; });
+
+        keys.erase(it, keys.end());  // Actually erase the elements
         auto end = std::chrono::high_resolution_clock::now();
-        binsearch_operatetime = (end - start).count();
+        binsearch_operatetime = chrono::duration<double>(end - start).count();
     
         // If needed, store binsearch_operatetime somewhere
     }
@@ -242,7 +245,7 @@ public:
         Reset the filter then insert
     */
     chrono::duration<double> testAdding(vector<string> dataArray) {
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
 
         if (bf.getFilterName() == "XorFilter") {
@@ -253,7 +256,7 @@ public:
             auto start = chrono::high_resolution_clock::now();
             bf.Init(data);
             auto end = chrono::high_resolution_clock::now();
-            total_elapsed = end - start;
+            total_elapsed += end - start;
         } else {
             if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
                 auto start = chrono::high_resolution_clock::now();
@@ -262,7 +265,7 @@ public:
                     0, 0, algo, scheme
                 );
                 auto end = chrono::high_resolution_clock::now();
-                total_elapsed += start - end;
+                total_elapsed += end - start;
             
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
@@ -291,7 +294,7 @@ public:
         Result res;
         res.nof_collision = 0;
 
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
 
         if (bf.getFilterName() == "XorFilter") {
@@ -302,7 +305,7 @@ public:
             auto start = chrono::high_resolution_clock::now();
             bf.Init(data);
             auto end = chrono::high_resolution_clock::now();
-            total_elapsed = end - start;
+            total_elapsed += end - start;
         }
             if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
                 auto start = chrono::high_resolution_clock::now();
@@ -311,7 +314,7 @@ public:
                     0, 0, algo, scheme
                 );
                 auto end = chrono::high_resolution_clock::now();
-                total_elapsed += start - end;
+                total_elapsed += end - start;
             
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
@@ -341,7 +344,7 @@ public:
     }
 
     chrono::duration<double> testInserting(vector<string> dataArray) {
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         cout << "Testing Inserting of "<< dataArray.size() <<" keys!" << endl;
 
         for (auto data : dataArray) {
@@ -358,7 +361,7 @@ public:
     Result testInserting_v1(vector<string> dataArray) {
         Result res;
         res.nof_collision = 0;
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         cout << "Testing Inserting of "<< dataArray.size() <<" keys!" << endl;
 
         for (auto data : dataArray) {
@@ -378,7 +381,7 @@ public:
 
     // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
     chrono::duration<double> testCheck(vector<string> dataArray) {
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         // cout << endl;
         cout << "Testing Test function for "<< dataArray.size()<<" entries!" << endl;
         // cout << endl;
@@ -394,7 +397,7 @@ public:
 
     // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
     chrono::duration<double> testRemove(vector<string> dataArray) {
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         // cout << endl;
         cout << "Testing Removing of "<< dataArray.size()<<" entries!" << endl;
         // cout << endl;
@@ -423,7 +426,7 @@ public:
             auto end = chrono::high_resolution_clock::now();
             total_elapsed += end - start;
         }
-
+        
         res.elapsed = total_elapsed;
         res.testCount = dataArray.size();
         return res;
@@ -650,8 +653,8 @@ public:
         auto duration = now.time_since_epoch();
         auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
         // # Initialization
-        string perfFilename = "icisn-result-" + to_string(millisec) + ".csv";
-        string confFilename = "icisn-config-" + to_string(millisec) + ".csv";
+        string perfFilename = "./icisn-csv/icisn-result-" + to_string(millisec) + ".csv";
+        string confFilename = "./icisn-csv/icisn-config-" + to_string(millisec) + ".csv";
         ofstream perf(perfFilename);
         ofstream conf(confFilename);
         if (!perf || !conf) {
@@ -719,8 +722,8 @@ public:
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         auto bisearch_time = BinarySearchReadTime(fullset).count();
-        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
         // Record the removal performance into TestCase
@@ -791,8 +794,8 @@ public:
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         bisearch_time = BinarySearchReadTime(fullset).count();
-        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
         // Record the removal performance into TestCase
@@ -815,7 +818,7 @@ public:
         res = testInserting_v1((set1));
         BinarySearchWrite((set1));
         elapsed = res.elapsed.count();
-        cout << "Inserting Half Set S Elapsed time: " << elapsed << "s" << endl;
+        cout << "Inserting 1 Set Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
         tc.nof_collision = res.nof_collision;
         tc.nof_operand = res.testCount;
@@ -861,8 +864,8 @@ public:
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         bisearch_time = BinarySearchReadTime(fullset).count();
-        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
         // Record the removal performance into TestCase
@@ -886,7 +889,7 @@ public:
         res = testInserting_v1((set4));
         BinarySearchWrite((set4));
         elapsed = res.elapsed.count();
-        cout << "Inserting Set 3 Elapsed time: " << elapsed << "s" << endl;
+        cout << "Inserting Set 4 Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
         tc.nof_collision = res.nof_collision;
         tc.nof_operand = res.testCount;
@@ -932,8 +935,8 @@ public:
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         bisearch_time = BinarySearchReadTime(fullset).count();
-        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
         // Record the removal performance into TestCase
