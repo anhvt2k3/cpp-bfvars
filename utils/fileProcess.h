@@ -22,7 +22,8 @@ struct TestCase {
     int nof_collision = 0;
     int nof_removable = 0;
     int nof_operand = 0;
-    int binsearch_time = 0;
+    double operation_time = 0;
+    double binsearch_time = 0;
 
     TestCase() {}
 
@@ -43,12 +44,13 @@ struct TestCase {
         nof_collision = 0;
         nof_removable = 0;
         nof_operand = 0;
+        operation_time = 0;
         binsearch_time = 0;
     }
 
     // Function to return the CSV header
     std::string getHeader() const {
-        return "FilterID/TestCase/AddOrRemoveTime/KeySet/NonkeySet/F1/F2/F3/F4/F5/TestSize/Accuracy/TestTime/NofCollision/NofRemovable/NofOperand/BinarySearchTime\n";
+        return "FilterID/TestCase/AddOrRemoveTime/KeySet/NonkeySet/F1/F2/F3/F4/F5/TestSize/Accuracy/TestTime/NofCollision/NofRemovable/NofOperand/OperationTime/BinarySearchTime\n";
     }
 
     // Function to format the TestCase object as a CSV string
@@ -70,6 +72,7 @@ struct TestCase {
             << nof_collision << "/"
             << nof_removable << "/"
             << nof_operand << "/"
+            << operation_time << "/"
             << binsearch_time << "/"
             << "\n";
         return oss.str();
