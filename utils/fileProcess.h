@@ -22,7 +22,7 @@ struct TestCase {
     int nof_collision = 0;
     int nof_removable = 0;
     int nof_operand = 0;
-    int binsearch_time = 0;
+    double binsearch_time = 0;
 
     TestCase() {}
 

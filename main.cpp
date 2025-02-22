@@ -98,7 +98,8 @@ class Result
         void finalize(long long int size)
         {
             testCount = size;
-            this->accuracy = (testCount - FP.size()) / testCount;
+            if (size == 0) this->accuracy = 1.0f;
+            else this->accuracy = (testCount - FP.size()) / testCount;
         }
         ~Result() {}
 };
