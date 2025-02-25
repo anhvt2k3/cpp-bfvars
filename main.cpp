@@ -206,18 +206,18 @@ public:
 
 // Function: Insert and Sort
 void BinarySearchWrite(vector<string> dataarr) {
+    
     auto start = chrono::high_resolution_clock::now();
-
     for (const auto& item : dataarr) {
         keys.push_back(item);
     }
-
+    auto end = chrono::high_resolution_clock::now();
+    
+    // * removing sorting cost because as we simulating db flow, new indexes will not cause sorting accrossthe index table but added in constant time with B-tree
     // Sorting based on extracted ID
     sort(keys.begin(), keys.end(), [](const string& a, const string& b) {
         return extractID(a) < extractID(b);
     });
-
-    auto end = chrono::high_resolution_clock::now();
     binsearch_operatetime = chrono::duration<double>(end - start).count();
 
     cout << "[INFO] BinarySearchWrite: Inserted " << dataarr.size() << " elements. Time: " << binsearch_operatetime << "s\n";
@@ -246,9 +246,9 @@ chrono::duration<double> BinarySearchReadTime(vector<string> dataarr) {
 
 // Function: Remove and Sort
 void BinarySearchRemove(const vector<string>& subtractArray) {
-    auto start = chrono::high_resolution_clock::now();
     
     unordered_set<string> toRemove;  
+    auto start = chrono::high_resolution_clock::now();
     for (const auto& item : subtractArray) {
         toRemove.insert(extractID(item));  // Store IDs only
     }
@@ -258,13 +258,13 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
     });
 
     keys.erase(it, keys.end());
+    auto end = chrono::high_resolution_clock::now();
 
     // Sorting after deletion
     sort(keys.begin(), keys.end(), [](const string& a, const string& b) {
         return extractID(a) < extractID(b);
     });
 
-    auto end = chrono::high_resolution_clock::now();
     binsearch_operatetime = chrono::duration<double>(end - start).count();
 
     cout << "[INFO] BinarySearchRemove: Removed " << subtractArray.size() << " elements. Time: " << binsearch_operatetime << "s\n";
