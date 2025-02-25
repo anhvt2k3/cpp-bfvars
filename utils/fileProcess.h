@@ -96,15 +96,15 @@ struct Configuration {
     string toCSVString() const {
         ostringstream oss;
         oss << filter->getFilterCode() << "/"
-            << filter->Size() << "/"
-            << filter->Capacity() << "/"
+            << filter->Size() << "/" //# total number of bits used, including the bitmap for the elements and the colliding status regions managing required bitmap
+            << filter->Capacity() << "/" //# max number of element the filter capable of holding
             << filter->K() << "/"
-            << filter->FPrate() << "/"
+            << filter->FPrate() << "/" //# target FP rate
             << filter->Count() << "/"
             << filter->BucketSize() << "/"
             << filter->getHashAlgo() << "/"
             << filter->getHashScheme() << "/"
-            << bs_memory << "\n";
+            << bs_memory << "\n"; //# min number of bits needed for all the keys (a.k.a max number of bits needed for all the elements in key set)
         return oss.str();
     }
 
