@@ -22,8 +22,8 @@ struct TestCase {
     int nof_collision = 0;
     int nof_removable = 0;
     int nof_operand = 0;
+    double operation_time = 0;
     double binsearch_time = 0;
-    double binsearch_operatetime = 0;
 
     TestCase() {}
 
@@ -44,13 +44,13 @@ struct TestCase {
         nof_collision = 0;
         nof_removable = 0;
         nof_operand = 0;
+        operation_time = 0;
         binsearch_time = 0;
-        binsearch_operatetime = 0;
     }
 
     // Function to return the CSV header
     std::string getHeader() const {
-        return "FilterID/TestCase/AddOrRemoveTime/KeySet/NonkeySet/F1/F2/F3/F4/F5/TestSize/Accuracy/TestTime/NofCollision/NofRemovable/NofOperand/BinarySearchTime/BinarySearchOperateTime\n";
+        return "FilterID/TestCase/AddOrRemoveTime/KeySet/NonkeySet/F1/F2/F3/F4/F5/TestSize/Accuracy/TestTime/NofCollision/NofRemovable/NofOperand/OperationTime/BinarySearchTime\n";
     }
 
     // Function to format the TestCase object as a CSV string
@@ -72,8 +72,8 @@ struct TestCase {
             << nof_collision << "/"
             << nof_removable << "/"
             << nof_operand << "/"
+            << std::fixed << std::setprecision(6) << operation_time << "/"
             << binsearch_time << "/"
-            << binsearch_operatetime << "/"
             << "\n";
         return oss.str();
     }
@@ -81,6 +81,7 @@ struct TestCase {
 
 struct Configuration {
     const BloomFilterModels::AbstractFilter* filter = nullptr;
+    long int bs_memory;
 
     Configuration() {}
 
@@ -89,20 +90,21 @@ struct Configuration {
     }
 
     string getHeader() const {
-        return "FilterID/FilterSize/Capacity/NumHashFunctions/FalsePositiveRate/NumItemsAdded/BucketSize/HashAlgo/HashScheme\n";
+        return "FilterID/FilterSize/Capacity/NumHashFunctions/FalsePositiveRate/NumItemsAdded/BucketSize/HashAlgo/HashScheme/BSMemory\n";
     }
 
     string toCSVString() const {
         ostringstream oss;
         oss << filter->getFilterCode() << "/"
-            << filter->Size() << "/"
-            << filter->Capacity() << "/"
+            << filter->Size() << "/" //# total number of bits used, including the bitmap for the elements and the colliding status regions managing required bitmap
+            << filter->Capacity() << "/" //# max number of element the filter capable of holding
             << filter->K() << "/"
-            << filter->FPrate() << "/"
+            << filter->FPrate() << "/" //# target FP rate
             << filter->Count() << "/"
             << filter->BucketSize() << "/"
             << filter->getHashAlgo() << "/"
-            << filter->getHashScheme() << "\n";
+            << filter->getHashScheme() << "/"
+            << bs_memory << "\n"; //# min number of bits needed for all the keys (a.k.a max number of bits needed for all the elements in key set)
         return oss.str();
     }
 

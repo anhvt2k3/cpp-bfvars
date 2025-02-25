@@ -9,15 +9,17 @@
 
 #include "csbf/index.h"
 #include "utils/fileProcess.h"
+#include <unordered_set>
 using namespace std;
 using namespace BloomFilterModels;
 
 string set0 = "./data/dataset0.csv"; //# 0 => all possible values
-string set1 = "./data/dataset1.csv"; //# 1 => values: 0 -> 200k
-string set2 = "./data/dataset2.csv"; //# 2 => values: 200k -> 400k
-string set3 = "./data/dataset3.csv"; //# 3 => values: 400k -> 600k
-string set4 = "./data/dataset4.csv"; //# 4 => values: 600k -> 800k
-string set5 = "./data/dataset5.csv"; //# 5 => values: 800k -> 1M
+string set1_namefile = "./data/dataset1.csv"; //# 1 => values: 0 -> 200k
+string set2_namefile = "./data/dataset2.csv"; //# 2 => values: 200k -> 400k
+string set3_namefile = "./data/dataset3.csv"; //# 3 => values: 400k -> 600k
+string set4_namefile = "./data/dataset4.csv"; //# 4 => values: 600k -> 800k
+string set5_namefile = "./data/dataset5.csv"; //# 5 => values: 800k -> 1M
+
 
 string algo = Defaults::HASH_ALGORITHM;
 string scheme = Defaults::HASH_SCHEME;
@@ -52,21 +54,13 @@ std::vector<std::string> mergeVectors(const Vectors&... vectors) {
     return mergedVector;
 }
 
-void doVectorSubstraction(std::vector<std::string>& dataArray, const std::vector<std::string>& subtractArray) {
-    for (const std::string& itemToSubtract : subtractArray) {
-        auto it = std::find(dataArray.begin(), dataArray.end(), itemToSubtract);
-        if (it != dataArray.end()) {
-            dataArray.erase(it);
-        }
-    }
-}
 
 vector<string> readCSV(const string& filename)
 {
     vector<string> data;
     ifstream file(filename);
     string line;
-
+    
     while (getline(file, line))
     {
         stringstream ss(line);
@@ -77,14 +71,25 @@ vector<string> readCSV(const string& filename)
             data.push_back(cell);
         }
     }
-
+    
     return data;
 }
+
+// Helper function: Extracts the ID (first part of the string)
+string extractID(const string& s) {
+    return s.substr(0, s.find(' '));
+}
+
+vector<string> set1 = readCSV(set1_namefile); //# 1 => values: 0 -> 200k
+vector<string> set2 = readCSV(set2_namefile); //# 2 => values: 200k -> 400k
+vector<string> set3 = readCSV(set3_namefile); //# 3 => values: 400k -> 600k
+vector<string> set4 = readCSV(set4_namefile); //# 4 => values: 600k -> 800k
+vector<string> set5 = readCSV(set5_namefile); //# 5 => values: 800k -> 1M
 
 class Result 
 {
     public:
-        long long int testCount = 0;
+    long long int testCount = 0;
         long long int nof_collision = 0;
         long long int nof_removable = 0;
         chrono::duration<double> elapsed;
@@ -107,20 +112,19 @@ class Result
 class Tester {
 public:
     BloomFilterModels::AbstractFilter& bf;
-    // chrono::duration<double> elapsed;
     vector<string> keys;
 
     vector<string> nonkeys;
 
-    vector<string> dataArray = mergeVectors(readCSV(set1),readCSV(set2),readCSV(set3),readCSV(set4),readCSV(set5));
-    double binsearch_operatetime;
+    vector<string> fullset = mergeVectors((set1),(set2),(set3),(set4),(set5));
+    double operation_time;
 
     vector<uint8_t> getAsciiBytes(const string& str) {
         vector<uint8_t> bytes(str.begin(), str.end());
         // cout << "String: " << str << endl;
         // cout << "Bytes:" << bytes.size() << endl;
-        // for (uint8_t byte : bytes) {
-        //     cout << static_cast<int>(byte) << ' ';
+        // for (uint8_t byte : bytes) 
+            //     cout << static_cast<int>(byte) << ' ';
         // }
         // cout << endl;
         return bytes;
@@ -132,45 +136,53 @@ public:
 
     // keys: set1, set2, set3, set4 || nonkeys: set5
     void initTester800() {
+        auto data = mergeVectors((set1), (set2), (set3), (set4));
         auto start = chrono::high_resolution_clock::now();
-        this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3), readCSV(set4));
+        for (auto item : data) {
+            keys.push_back(item);
+        }
         auto end = chrono::high_resolution_clock::now();
-        auto duration = chrono::duration<double>(end - start);
-        binsearch_operatetime = duration.count();
-        this->nonkeys = readCSV(set5);
+        operation_time = chrono::duration<double>(end-start).count();
+        this->nonkeys = (set5);
         this->getEntrySize();
     }
 
     // keys: set1 || nonkeys: set2, set3, set4
     void initTester200() {
+        auto data = mergeVectors((set1));
         auto start = chrono::high_resolution_clock::now();
-        this->keys = mergeVectors(readCSV(set1));
+        for (auto item : data) {
+            keys.push_back(item);
+        }
         auto end = chrono::high_resolution_clock::now();
-        auto duration = chrono::duration<double>(end - start);
-        binsearch_operatetime = duration.count();
-        this->nonkeys = mergeVectors(readCSV(set2), readCSV(set3), readCSV(set4));
+        operation_time = chrono::duration<double>(end-start).count();
+        this->nonkeys = mergeVectors((set2), (set3), (set4));
         this->getEntrySize();
     }
 
     // keys: set1, set2 || nonkeys: set3, set4
     void initTester400() {
+        auto data = mergeVectors((set1), (set2));
         auto start = chrono::high_resolution_clock::now();
-        this->keys = mergeVectors(readCSV(set1), readCSV(set2));
+        for (auto item : data) {
+            keys.push_back(item);
+        }
         auto end = chrono::high_resolution_clock::now();
-        auto duration = chrono::duration<double>(end - start);
-        binsearch_operatetime = duration.count();
-        this->nonkeys = mergeVectors(readCSV(set3), readCSV(set4));
+        operation_time = chrono::duration<double>(end-start).count();
+        this->nonkeys = mergeVectors((set3), (set4));
         this->getEntrySize();
     }
 
     // keys: set1, set2 || nonkeys: set3, set4
     void initTester600() {
+        auto data = mergeVectors((set1), (set2), (set3) );
         auto start = chrono::high_resolution_clock::now();
-        this->keys = mergeVectors(readCSV(set1), readCSV(set2), readCSV(set3) );
+        for (auto item : data) {
+            keys.push_back(item);
+        }
         auto end = chrono::high_resolution_clock::now();
-        auto duration = chrono::duration<double>(end - start);
-        binsearch_operatetime = duration.count();
-        this->nonkeys = mergeVectors( readCSV(set4), readCSV(set5) );
+        operation_time = chrono::duration<double>(end-start).count();
+        this->nonkeys = mergeVectors( (set4), (set5) );
         this->getEntrySize();
     }
 
@@ -193,22 +205,77 @@ public:
         return bf.K();
     }
 
-    chrono::duration<double> BinarySearchMeasure(vector<string> dataArray) {
-        auto start = chrono::high_resolution_clock::now();
-        for (auto item : dataArray)
-        {
-            auto _ = binary_search(keys.begin(), keys.end(), item);
-        }
-        auto end = chrono::high_resolution_clock::now();
-        return end - start;
+// Function: Insert and Sort
+void BinarySearchWrite(vector<string> dataarr) {
+    
+    auto start = chrono::high_resolution_clock::now();
+    for (const auto& item : dataarr) {
+        keys.push_back(item);
+    }
+    auto end = chrono::high_resolution_clock::now();
+    
+    // * removing sorting cost because as we simulating db flow, new indexes will not cause sorting accrossthe index table but added in constant time with B-tree
+    // Sorting based on extracted ID
+    sort(keys.begin(), keys.end(), [](const string& a, const string& b) {
+        return extractID(a) < extractID(b);
+    });
+    operation_time = chrono::duration<double>(end - start).count();
+
+    cout << "[INFO] BinarySearchWrite: Inserted " << dataarr.size() << " elements. Time: " << operation_time << "s\n";
+}
+
+// Function: Search and Log
+chrono::duration<double> BinarySearchReadTime(vector<string> dataarr) {
+    auto start = chrono::high_resolution_clock::now();
+    
+    int founds = 0;
+    for (const auto& item : dataarr) {
+        bool found = binary_search(keys.begin(), keys.end(), item);
+        // bool found = binary_search(keys.begin(), keys.end(), item, [](const string& a, const string& b) {
+        //     return extractID(a) < extractID(b);
+        // });
+        founds += found;
     }
 
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double> duration = end - start;
+
+    cout << "[INFO] BinarySearchReadTime: Found = "<<founds<<"\n";
+
+    return duration;
+}
+
+// Function: Remove and Sort
+void BinarySearchRemove(const vector<string>& subtractArray) {
+    
+    unordered_set<string> toRemove;  
+    auto start = chrono::high_resolution_clock::now();
+    for (const auto& item : subtractArray) {
+        toRemove.insert(extractID(item));  // Store IDs only
+    }
+
+    auto it = remove_if(keys.begin(), keys.end(), [&toRemove](const string& key) {
+        return toRemove.count(extractID(key)) > 0;
+    });
+
+    keys.erase(it, keys.end());
+    auto end = chrono::high_resolution_clock::now();
+
+    // Sorting after deletion
+    sort(keys.begin(), keys.end(), [](const string& a, const string& b) {
+        return extractID(a) < extractID(b);
+    });
+
+    operation_time = chrono::duration<double>(end - start).count();
+
+    cout << "[INFO] BinarySearchRemove: Removed " << subtractArray.size() << " elements. Time: " << operation_time << "s\n";
+}
     /*
         Input: vector of strings || Output: chrono::duration<double> as total time elapsed
         Reset the filter then insert
     */
     chrono::duration<double> testAdding(vector<string> dataArray) {
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
 
         if (bf.getFilterName() == "XorFilter") {
@@ -219,7 +286,7 @@ public:
             auto start = chrono::high_resolution_clock::now();
             bf.Init(data);
             auto end = chrono::high_resolution_clock::now();
-            total_elapsed = end - start;
+            total_elapsed += end - start;
         } else {
             if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
                 auto start = chrono::high_resolution_clock::now();
@@ -228,7 +295,7 @@ public:
                     0, 0, algo, scheme
                 );
                 auto end = chrono::high_resolution_clock::now();
-                total_elapsed += start - end;
+                total_elapsed += end - start;
             
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
@@ -257,7 +324,7 @@ public:
         Result res;
         res.nof_collision = 0;
 
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
 
         if (bf.getFilterName() == "XorFilter") {
@@ -268,7 +335,7 @@ public:
             auto start = chrono::high_resolution_clock::now();
             bf.Init(data);
             auto end = chrono::high_resolution_clock::now();
-            total_elapsed = end - start;
+            total_elapsed += end - start;
         }
             if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
                 auto start = chrono::high_resolution_clock::now();
@@ -277,7 +344,7 @@ public:
                     0, 0, algo, scheme
                 );
                 auto end = chrono::high_resolution_clock::now();
-                total_elapsed += start - end;
+                total_elapsed += end - start;
             
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
@@ -290,7 +357,7 @@ public:
             }
             
             } else {
-// * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
+        // * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
                 res.nof_collision += bf.Test(dataBytes) ;
@@ -307,7 +374,7 @@ public:
     }
 
     chrono::duration<double> testInserting(vector<string> dataArray) {
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         cout << "Testing Inserting of "<< dataArray.size() <<" keys!" << endl;
 
         for (auto data : dataArray) {
@@ -324,7 +391,7 @@ public:
     Result testInserting_v1(vector<string> dataArray) {
         Result res;
         res.nof_collision = 0;
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         cout << "Testing Inserting of "<< dataArray.size() <<" keys!" << endl;
 
         for (auto data : dataArray) {
@@ -344,7 +411,7 @@ public:
 
     // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
     chrono::duration<double> testCheck(vector<string> dataArray) {
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         // cout << endl;
         cout << "Testing Test function for "<< dataArray.size()<<" entries!" << endl;
         // cout << endl;
@@ -360,7 +427,7 @@ public:
 
     // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
     chrono::duration<double> testRemove(vector<string> dataArray) {
-        chrono::duration<double> total_elapsed;
+        chrono::duration<double> total_elapsed(0);
         // cout << endl;
         cout << "Testing Removing of "<< dataArray.size()<<" entries!" << endl;
         // cout << endl;
@@ -378,7 +445,7 @@ public:
         Result res;
         res.nof_removable = 0;
         
-        chrono::duration<double> total_elapsed;
+        auto total_elapsed = chrono::duration<double> (0) ;
         // cout << endl;
         cout << "Testing Removing of "<< dataArray.size()<<" entries!" << endl;
         // cout << endl;
@@ -389,7 +456,7 @@ public:
             auto end = chrono::high_resolution_clock::now();
             total_elapsed += end - start;
         }
-
+        
         res.elapsed = total_elapsed;
         res.testCount = dataArray.size();
         return res;
@@ -431,25 +498,25 @@ public:
         auto time = chrono::duration<double>(0);
 
         Result result;
-        result = TestFP(readCSV(set1), true);
+        result = TestFP((set1), true);
         fcount += result.FP.size();
         cout << "FN count for set1: " << result.FP.size() << endl;
         testCount += result.testCount;
         time += result.elapsed;
 
-        result = TestFP(readCSV(set2), false);
+        result = TestFP((set2), false);
         fcount += result.FP.size();
         cout << "FP count for set2: " << result.FP.size() << endl;
         testCount += result.testCount;
         time += result.elapsed;
 
-        result = TestFP(readCSV(set3), false);
+        result = TestFP((set3), false);
         fcount += result.FP.size();
         cout << "FP count for set3: " << result.FP.size() << endl;
         testCount += result.testCount;
         time += result.elapsed;
 
-        result = TestFP(readCSV(set4), false);
+        result = TestFP((set4), false);
         fcount += result.FP.size();
         cout << "FP count for set4: " << result.FP.size() << endl;
         testCount += result.testCount;
@@ -496,25 +563,25 @@ public:
         auto time = chrono::duration<double>(0);
 
         Result result;
-        result = TestFP(readCSV(set1), true);
+        result = TestFP((set1), true);
         fcount += result.FP.size();
         cout << "FN count for set1: " << result.FP.size() << endl;
         testCount += result.testCount;
         time += result.elapsed;
 
-        result = TestFP(readCSV(set2), true);
+        result = TestFP((set2), true);
         fcount += result.FP.size();
         cout << "FN count for set2: " << result.FP.size() << endl;
         testCount += result.testCount;
         time += result.elapsed;
 
-        result = TestFP(readCSV(set3), false);
+        result = TestFP((set3), false);
         fcount += result.FP.size();
         cout << "FP count for set3: " << result.FP.size() << endl;
         testCount += result.testCount;
         time += result.elapsed;
 
-        result = TestFP(readCSV(set4), false);
+        result = TestFP((set4), false);
         fcount += result.FP.size();
         cout << "FP count for set4: " << result.FP.size() << endl;
         testCount += result.testCount;
@@ -565,31 +632,31 @@ public:
         long long int testCount = 0;
         auto time = chrono::duration<double>(0);
 
-        result = TestFP(readCSV(set1), true);
+        result = TestFP((set1), true);
         fcount += result.FP.size();
         cout << "FN count for set1: " << result.FP.size() << endl;
         testCount += result.testCount;
         time += result.elapsed;
 
-        result = TestFP(readCSV(set5), false);
+        result = TestFP((set5), false);
         fcount += result.FP.size();
         cout << "FP count for set5: " << result.FP.size() << endl;
         testCount += result.testCount;
         time += result.elapsed;
 
-        result = TestFP(readCSV(set2), true);
+        result = TestFP((set2), true);
         fcount += result.FP.size();
         cout << "FN count for set2: " << result.FP.size() << endl;
         testCount += result.testCount;
         time += result.elapsed;
 
-        result = TestFP(readCSV(set3), true);
+        result = TestFP((set3), true);
         fcount += result.FP.size();
         cout << "FN count for set3: " << result.FP.size() << endl;
         testCount += result.testCount;
         time += result.elapsed;
 
-        result = TestFP(readCSV(set4), true);
+        result = TestFP((set4), true);
         fcount += result.FP.size();
         cout << "FN count for set4: " << result.FP.size() << endl;
         testCount += result.testCount;
@@ -616,8 +683,8 @@ public:
         auto duration = now.time_since_epoch();
         auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
         // # Initialization
-        string perfFilename = "icisn-result-" + to_string(millisec) + ".csv";
-        string confFilename = "icisn-config-" + to_string(millisec) + ".csv";
+        string perfFilename = "./icisn-csv/icisn-result-" + to_string(millisec) + ".csv";
+        string confFilename = "./icisn-csv/icisn-config-" + to_string(millisec) + ".csv";
         ofstream perf(perfFilename);
         ofstream conf(confFilename);
         if (!perf || !conf) {
@@ -643,37 +710,37 @@ public:
         tc.nof_collision = res.nof_collision;
         tc.nof_operand = res.testCount;
 
-        // # MEASUREMENT
+        // # ReadTimeMENT
         long long int fcount = 0;
         long long int testCount = 0;
         Result result_1;
         auto time = chrono::duration<double>(0);
 
-        result_1 = TestFP(readCSV(set1), true);
+        result_1 = TestFP((set1), true);
         fcount += result_1.FP.size();
         tc.f1 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set2), true);
+        result_1 = TestFP((set2), true);
         fcount += result_1.FP.size();
         tc.f2 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set3), true);
+        result_1 = TestFP((set3), true);
         fcount += result_1.FP.size();
         tc.f3 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set4), false);
+        result_1 = TestFP((set4), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set5), false);
+        result_1 = TestFP((set5), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
@@ -684,68 +751,69 @@ public:
         cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
-        auto bisearch_time = BinarySearchMeasure(dataArray).count();
-        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        auto bisearch_time = BinarySearchReadTime(fullset).count();
+        cout << "Binary Search Operate Time: " << operation_time << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
         // Record the removal performance into TestCase
-        tc.test_case = "InsertSet1,2";
+        tc.test_case = "InsertSet1,2,3";
         // tc.adding_time = elapsed;
         tc.key_set = "1,2,3";
         tc.nonkey_set = "4,5";
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
+        tc.operation_time = operation_time;
         tc.binsearch_time = bisearch_time;
-        tc.binsearch_operatetime = binsearch_operatetime;
+        tc.operation_time = operation_time;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
-        // # END MEASUREMENT
+        // # END ReadTimeMENT
 
         // # Test node 2
         // Remove set R -> time
-        res = testRemove_v1(readCSV(set1)); 
-        keys = mergeVectors(readCSV(set2),readCSV(set3),readCSV(set4));
-        elapsed = res.elapsed.count();
+        res = testRemove_v1((set1)); 
+        BinarySearchRemove((set1));
+        elapsed = res.elapsed.count(); 
         cout << "Removing 1 Set Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
         tc.nof_removable = res.nof_removable;
         tc.nof_operand = res.testCount;
 
-        // # MEASUREMENT
+        // # ReadTimeMENT
         // Check set S-R over U -> accuracy
         fcount = 0;
         testCount = 0;
         time = chrono::duration<double>(0);
 
-        result_1 = TestFP(readCSV(set1), false);
+        result_1 = TestFP((set1), false);
         fcount += result_1.FP.size();
         tc.f1 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set2), true);
+        result_1 = TestFP((set2), true);
         fcount += result_1.FP.size();
         tc.f2 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set3), true);
+        result_1 = TestFP((set3), true);
         fcount += result_1.FP.size();
         tc.f3 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set4), false);
+        result_1 = TestFP((set4), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set5), false);
+        result_1 = TestFP((set5), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
@@ -756,8 +824,8 @@ public:
         cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
-        bisearch_time = BinarySearchMeasure(dataArray).count();
-        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        bisearch_time = BinarySearchReadTime(fullset).count();
+        cout << "Binary Search Operate Time: " << operation_time << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
@@ -768,54 +836,55 @@ public:
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
+        tc.operation_time = operation_time;
         tc.binsearch_time = bisearch_time;
-        tc.binsearch_operatetime = binsearch_operatetime;
+        tc.operation_time = operation_time;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
-        // # END MEASUREMENT
+        // # END ReadTimeMENT
 
         // # Test node 3
         // Insert set S -> time
-        res = testInserting_v1(readCSV(set1));
-        keys = mergeVectors(readCSV(set1),readCSV(set2),readCSV(set3));
+        res = testInserting_v1((set1));
+        BinarySearchWrite((set1));
         elapsed = res.elapsed.count();
-        cout << "Inserting Half Set S Elapsed time: " << elapsed << "s" << endl;
+        cout << "Inserting 1 Set Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
         tc.nof_collision = res.nof_collision;
         tc.nof_operand = res.testCount;
 
-        // # MEASUREMENT
+        // # ReadTimeMENT
         fcount = 0;
         testCount = 0;
         time = chrono::duration<double>(0);
 
-        result_1 = TestFP(readCSV(set1), true);
+        result_1 = TestFP((set1), true);
         fcount += result_1.FP.size();
         tc.f1 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set2), true);
+        result_1 = TestFP((set2), true);
         fcount += result_1.FP.size();
         tc.f2 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set3), true);
+        result_1 = TestFP((set3), true);
         fcount += result_1.FP.size();
         tc.f3 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set4), false);
+        result_1 = TestFP((set4), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set5), false);
+        result_1 = TestFP((set5), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
@@ -826,8 +895,8 @@ public:
         cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
-        bisearch_time = BinarySearchMeasure(dataArray).count();
-        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        bisearch_time = BinarySearchReadTime(fullset).count();
+        cout << "Binary Search Operate Time: " << operation_time << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
@@ -839,54 +908,55 @@ public:
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
+        tc.operation_time = operation_time;
         tc.binsearch_time = bisearch_time;
-        tc.binsearch_operatetime = binsearch_operatetime;
+        tc.operation_time = operation_time;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
-        // # END MEASUREMENT
+        // # END ReadTimeMENT
         
         // # Test node 4
         // Insert set S -> time
-        res = testInserting_v1(readCSV(set4));
-        keys = mergeVectors(readCSV(set1),readCSV(set2),readCSV(set3),readCSV(set4));
+        res = testInserting_v1((set4));
+        BinarySearchWrite((set4));
         elapsed = res.elapsed.count();
-        cout << "Inserting Set 3 Elapsed time: " << elapsed << "s" << endl;
+        cout << "Inserting Set 4 Elapsed time: " << elapsed << "s" << endl;
         tc.adding_time = elapsed;
         tc.nof_collision = res.nof_collision;
         tc.nof_operand = res.testCount;
 
-        // # MEASUREMENT
+        // # ReadTimeMENT
         fcount = 0;
         testCount = 0;
         time = chrono::duration<double>(0);
 
-        result_1 = TestFP(readCSV(set1), true);
+        result_1 = TestFP((set1), true);
         fcount += result_1.FP.size();
         tc.f1 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set2), true);
+        result_1 = TestFP((set2), true);
         fcount += result_1.FP.size();
         tc.f2 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set3), true);
+        result_1 = TestFP((set3), true);
         fcount += result_1.FP.size();
         tc.f3 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set4), true);
+        result_1 = TestFP((set4), true);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(set5), false);
+        result_1 = TestFP((set5), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
@@ -897,8 +967,8 @@ public:
         cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
-        bisearch_time = BinarySearchMeasure(dataArray).count();
-        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        bisearch_time = BinarySearchReadTime(fullset).count();
+        cout << "Binary Search Operate Time: " << operation_time << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
@@ -910,15 +980,17 @@ public:
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
+        tc.operation_time = operation_time;
         tc.binsearch_time = bisearch_time;
-        tc.binsearch_operatetime = binsearch_operatetime;
+        tc.operation_time = operation_time;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString(); tc.reset();
-        // # END MEASUREMENT
+        // # END ReadTimeMENT
 
         Configuration cf(&bf); conf << cf.getHeader();
+        cf.bs_memory = cf.bs_memory = keys.capacity() * (sizeof(std::string) + keys[0].capacity()) * 8;
         conf << cf.toCSVString();
 
         // # Finalization
@@ -930,52 +1002,52 @@ public:
     }
 
     string AAdd600k (
-                string skey1 = set1, 
-                string skey2 = set2, 
-                string skey3 = set3, 
-                string snkey1 = set4,
-                string snkey2 = set5
+                vector<string> skey1 = set1, 
+                vector<string> skey2 = set2, 
+                vector<string> skey3 = set3, 
+                vector<string> snkey1 = set4,
+                vector<string> snkey2 = set5
         )
     {
         TestCase tc;
         // # Test node 1
         // Insert set S -> time
-        auto elapsed = testAdding(mergeVectors(readCSV(skey1),readCSV(skey2),readCSV(skey3))).count();
+        auto elapsed = testAdding(mergeVectors((skey1),(skey2),(skey3))).count();
         cout << "Adding Keys Elapsed time: " << elapsed << "s" << endl;
         tc.filterID = bf.getFilterCode();
         tc.adding_time = elapsed;
 
-        // # MEASUREMENT
+        // # ReadTimeMENT
         long long int fcount = 0;
         long long int testCount = 0;
         Result result_1;
         auto time = chrono::duration<double>(0);
 
-        result_1 = TestFP(readCSV(skey1), true);
+        result_1 = TestFP((skey1), true);
         fcount += result_1.FP.size();
         tc.f1 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(skey2), true);
+        result_1 = TestFP((skey2), true);
         fcount += result_1.FP.size();
         tc.f2 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(skey3), true);
+        result_1 = TestFP((skey3), true);
         fcount += result_1.FP.size();
         tc.f3 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(snkey1), false);
+        result_1 = TestFP((snkey1), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(snkey2), false);
+        result_1 = TestFP((snkey2), false);
         fcount += result_1.FP.size();
         tc.f5 = result_1.FP.size();
         testCount += result_1.testCount;
@@ -992,12 +1064,12 @@ public:
         tc.test_case = "Std Test";
         // tc.adding_time = elapsed;
         // # to be fixed
-        tc.key_set = getVarName(skey1) + "+" + getVarName(skey2) + "+" + getVarName(skey3);
-        tc.nonkey_set = getVarName(snkey1) + "+" + getVarName(snkey2);
+        tc.key_set = getVarName("skey1") + "+" + getVarName("skey2") + "+" + getVarName("skey3");
+        tc.nonkey_set = getVarName("snkey1") + "+" + getVarName("snkey2");
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
-        // # END MEASUREMENT
+        // # END ReadTimeMENT
 
         cout << getConfig();
         cout << "Test done running!" << endl;
@@ -1006,52 +1078,52 @@ public:
     }
  
     string AAdd400k (
-                string skey1 = set1, 
-                string skey2 = set2, 
-                string snkey1 = set3, 
-                string snkey2 = set4,
-                string snkey3 = set5
+                vector<string> skey1 = set1, 
+                vector<string> skey2 = set2, 
+                vector<string> snkey1 = set3, 
+                vector<string> snkey2 = set4,
+                vector<string> snkey3 = set5
         )
     {
         TestCase tc;
         // # Test node 1
         // Insert set S -> time
-        auto elapsed = testAdding(mergeVectors(readCSV(skey1),readCSV(skey2))).count();
+        auto elapsed = testAdding(mergeVectors((skey1),(skey2))).count();
         cout << "Adding Keys Elapsed time: " << elapsed << "s" << endl;
         tc.filterID = bf.getFilterCode();
         tc.adding_time = elapsed;
 
-        // # MEASUREMENT
+        // # ReadTimeMENT
         long long int fcount = 0;
         long long int testCount = 0;
         Result result_1;
         auto time = chrono::duration<double>(0);
 
-        result_1 = TestFP(readCSV(skey1), true);
+        result_1 = TestFP((skey1), true);
         fcount += result_1.FP.size();
         tc.f1 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(skey2), true);
+        result_1 = TestFP((skey2), true);
         fcount += result_1.FP.size();
         tc.f2 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(snkey1), false);
+        result_1 = TestFP((snkey1), false);
         fcount += result_1.FP.size();
         tc.f3 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(snkey2), false);
+        result_1 = TestFP((snkey2), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP(readCSV(snkey3), false);
+        result_1 = TestFP((snkey3), false);
         fcount += result_1.FP.size();
         tc.f5 = result_1.FP.size();
         testCount += result_1.testCount;
@@ -1068,12 +1140,12 @@ public:
         tc.test_case = "Std Test 2";
         // tc.adding_time = elapsed;
         // # to be fixed
-        tc.key_set = getVarName(skey1) + "+" + getVarName(skey2) ;
-        tc.nonkey_set = getVarName(snkey1) + "+" + getVarName(snkey2) + "+" + getVarName(snkey3);
+        tc.key_set = getVarName("skey1") + "+" + getVarName("skey2") ;
+        tc.nonkey_set = getVarName("snkey1") + "+" + getVarName("snkey2") + "+" + getVarName("snkey3");
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
-        // # END MEASUREMENT
+        // # END ReadTimeMENT
 
         cout << getConfig();
         cout << "Test done running!" << endl;
