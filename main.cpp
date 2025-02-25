@@ -75,6 +75,11 @@ vector<string> readCSV(const string& filename)
     return data;
 }
 
+// Helper function: Extracts the ID (first part of the string)
+string extractID(const string& s) {
+    return s.substr(0, s.find(' '));
+}
+
 vector<string> set1 = readCSV(set1_namefile); //# 1 => values: 0 -> 200k
 vector<string> set2 = readCSV(set2_namefile); //# 2 => values: 200k -> 400k
 vector<string> set3 = readCSV(set3_namefile); //# 3 => values: 400k -> 600k
@@ -106,7 +111,6 @@ class Result
 class Tester {
 public:
     BloomFilterModels::AbstractFilter& bf;
-    // chrono::duration<double> elapsed;
     vector<string> keys;
 
     vector<string> nonkeys;
@@ -200,46 +204,71 @@ public:
         return bf.K();
     }
 
-    // do BSWrite and save data to binsearch_operatetime
-    void BinarySearchWrite(vector<string> dataarr) {
-        auto start = chrono::high_resolution_clock::now();
-        for (auto item : dataarr)
-        {
-            keys.push_back(item);
-        }
-        auto end = chrono::high_resolution_clock::now();
-        binsearch_operatetime = chrono::duration<double>(end - start).count();
+// Function: Insert and Sort
+void BinarySearchWrite(vector<string> dataarr) {
+    auto start = chrono::high_resolution_clock::now();
+
+    for (const auto& item : dataarr) {
+        keys.push_back(item);
     }
 
-    // do BSRead and save data to binsearch_operatetime
-    chrono::duration<double> BinarySearchReadTime(vector<string> dataarr) {
-        auto start = chrono::high_resolution_clock::now();
-        for (auto item : dataarr)
-        {
-            auto _ = binary_search(keys.begin(), keys.end(), item);
-        }
-        auto end = chrono::high_resolution_clock::now();
-        return end - start;
-    }
+    // Sorting based on extracted ID
+    sort(keys.begin(), keys.end(), [](const string& a, const string& b) {
+        return extractID(a) < extractID(b);
+    });
+
+    auto end = chrono::high_resolution_clock::now();
+    binsearch_operatetime = chrono::duration<double>(end - start).count();
+
+    cout << "[INFO] BinarySearchWrite: Inserted " << dataarr.size() << " elements. Time: " << binsearch_operatetime << "s\n";
+}
+
+// Function: Search and Log
+chrono::duration<double> BinarySearchReadTime(vector<string> dataarr) {
+    auto start = chrono::high_resolution_clock::now();
     
-    // do BSRemove and save data to binsearch_operatetime
-    void BinarySearchRemove(const std::vector<std::string>& subtractArray) {
-        auto start = std::chrono::high_resolution_clock::now();
-        
-        cout << "binary remove working fine \n" ;
-        // Use a set for fast lookup of elements to remove
-        std::unordered_set<std::string> toRemove(subtractArray.begin(), subtractArray.end());
-
-        // Use std::erase_if (C++20) for efficiency, or manual erase-remove idiom for older versions
-        auto it = std::remove_if(keys.begin(), keys.end(),
-            [&toRemove](const std::string& key) { return toRemove.count(key) > 0; });
-
-        keys.erase(it, keys.end());  // Actually erase the elements
-        auto end = std::chrono::high_resolution_clock::now();
-        binsearch_operatetime = chrono::duration<double>(end - start).count();
-    
-        // If needed, store binsearch_operatetime somewhere
+    int founds = 0;
+    for (const auto& item : dataarr) {
+        bool found = binary_search(keys.begin(), keys.end(), item);
+        // bool found = binary_search(keys.begin(), keys.end(), item, [](const string& a, const string& b) {
+        //     return extractID(a) < extractID(b);
+        // });
+        founds += found;
     }
+
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double> duration = end - start;
+
+    cout << "[INFO] BinarySearchReadTime: Found = "<<founds<<"\n";
+
+    return duration;
+}
+
+// Function: Remove and Sort
+void BinarySearchRemove(const vector<string>& subtractArray) {
+    auto start = chrono::high_resolution_clock::now();
+    
+    unordered_set<string> toRemove;  
+    for (const auto& item : subtractArray) {
+        toRemove.insert(extractID(item));  // Store IDs only
+    }
+
+    auto it = remove_if(keys.begin(), keys.end(), [&toRemove](const string& key) {
+        return toRemove.count(extractID(key)) > 0;
+    });
+
+    keys.erase(it, keys.end());
+
+    // Sorting after deletion
+    sort(keys.begin(), keys.end(), [](const string& a, const string& b) {
+        return extractID(a) < extractID(b);
+    });
+
+    auto end = chrono::high_resolution_clock::now();
+    binsearch_operatetime = chrono::duration<double>(end - start).count();
+
+    cout << "[INFO] BinarySearchRemove: Removed " << subtractArray.size() << " elements. Time: " << binsearch_operatetime << "s\n";
+}
     /*
         Input: vector of strings || Output: chrono::duration<double> as total time elapsed
         Reset the filter then insert
@@ -327,7 +356,7 @@ public:
             }
             
             } else {
-// * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
+        // * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
                 res.nof_collision += bf.Test(dataBytes) ;
@@ -956,6 +985,7 @@ public:
         // # END ReadTimeMENT
 
         Configuration cf(&bf); conf << cf.getHeader();
+        cf.bs_memory = sizeof(keys);
         conf << cf.toCSVString();
 
         // # Finalization

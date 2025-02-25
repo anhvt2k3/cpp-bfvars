@@ -81,6 +81,7 @@ struct TestCase {
 
 struct Configuration {
     const BloomFilterModels::AbstractFilter* filter = nullptr;
+    long int bs_memory;
 
     Configuration() {}
 
@@ -89,7 +90,7 @@ struct Configuration {
     }
 
     string getHeader() const {
-        return "FilterID/FilterSize/Capacity/NumHashFunctions/FalsePositiveRate/NumItemsAdded/BucketSize/HashAlgo/HashScheme\n";
+        return "FilterID/FilterSize/Capacity/NumHashFunctions/FalsePositiveRate/NumItemsAdded/BucketSize/HashAlgo/HashScheme/BSMemory\n";
     }
 
     string toCSVString() const {
@@ -102,7 +103,8 @@ struct Configuration {
             << filter->Count() << "/"
             << filter->BucketSize() << "/"
             << filter->getHashAlgo() << "/"
-            << filter->getHashScheme() << "\n";
+            << filter->getHashScheme() << "/"
+            << bs_memory << "\n";
         return oss.str();
     }
 
