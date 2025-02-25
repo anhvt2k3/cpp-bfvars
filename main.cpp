@@ -985,7 +985,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         // # END ReadTimeMENT
 
         Configuration cf(&bf); conf << cf.getHeader();
-        cf.bs_memory = sizeof(keys);
+        cf.bs_memory = cf.bs_memory = keys.capacity() * (sizeof(std::string) + keys[0].capacity()) * 8;
         conf << cf.toCSVString();
 
         // # Finalization
