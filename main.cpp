@@ -103,7 +103,8 @@ class Result
         void finalize(long long int size)
         {
             testCount = size;
-            this->accuracy = (testCount - FP.size()) / testCount;
+            if (size == 0) this->accuracy = 1.0f;
+            else this->accuracy = (testCount - FP.size()) / testCount;
         }
         ~Result() {}
 };
@@ -116,7 +117,7 @@ public:
     vector<string> nonkeys;
 
     vector<string> fullset = mergeVectors((set1),(set2),(set3),(set4),(set5));
-    double binsearch_operatetime;
+    double operation_time;
 
     vector<uint8_t> getAsciiBytes(const string& str) {
         vector<uint8_t> bytes(str.begin(), str.end());
@@ -222,9 +223,9 @@ void BinarySearchWrite(vector<string> dataarr) {
     sort(keys.begin(), keys.end(), [](const string& a, const string& b) {
         return extractID(a) < extractID(b);
     });
-    binsearch_operatetime = chrono::duration<double>(end - start).count();
+    operation_time = chrono::duration<double>(end - start).count();
 
-    cout << "[INFO] BinarySearchWrite: Inserted " << dataarr.size() << " elements. Time: " << binsearch_operatetime << "s\n";
+    cout << "[INFO] BinarySearchWrite: Inserted " << dataarr.size() << " elements. Time: " << operation_time << "s\n";
 }
 
 // Function: Search and Log
@@ -269,9 +270,9 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         return extractID(a) < extractID(b);
     });
 
-    binsearch_operatetime = chrono::duration<double>(end - start).count();
+    operation_time = chrono::duration<double>(end - start).count();
 
-    cout << "[INFO] BinarySearchRemove: Removed " << subtractArray.size() << " elements. Time: " << binsearch_operatetime << "s\n";
+    cout << "[INFO] BinarySearchRemove: Removed " << subtractArray.size() << " elements. Time: " << operation_time << "s\n";
 }
     /*
         Input: vector of strings || Output: chrono::duration<double> as total time elapsed
@@ -687,8 +688,9 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         auto duration = now.time_since_epoch();
         auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
         // # Initialization
-        string perfFilename = "./icisn-csv/icisn-result-" +algo+"__"+scheme+ ".csv";
-        string confFilename = "./icisn-csv/icisn-config-" +algo+"__"+scheme+ ".csv";
+        system("mkdir -p ./icisn-csv");
+        string perfFilename = "./icisn-csv/icisn-result-" + to_string(millisec) + ".csv";
+        string confFilename = "./icisn-csv/icisn-config-" + to_string(millisec) + ".csv";
         ofstream perf(perfFilename);
         ofstream conf(confFilename);
         if (!perf || !conf) {
@@ -756,7 +758,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         auto bisearch_time = BinarySearchReadTime(fullset).count();
-        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        cout << "Binary Search Operate Time: " << operation_time << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
@@ -768,8 +770,9 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
-        tc.operation_time = binsearch_operatetime;
+        tc.operation_time = operation_time;
         tc.binsearch_time = bisearch_time;
+        tc.operation_time = operation_time;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
@@ -828,7 +831,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         bisearch_time = BinarySearchReadTime(fullset).count();
-        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        cout << "Binary Search Operate Time: " << operation_time << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
@@ -839,8 +842,9 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
-        tc.operation_time = binsearch_operatetime;
+        tc.operation_time = operation_time;
         tc.binsearch_time = bisearch_time;
+        tc.operation_time = operation_time;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
@@ -898,7 +902,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         bisearch_time = BinarySearchReadTime(fullset).count();
-        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        cout << "Binary Search Operate Time: " << operation_time << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
@@ -910,8 +914,9 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
-        tc.operation_time = binsearch_operatetime;
+        tc.operation_time = operation_time;
         tc.binsearch_time = bisearch_time;
+        tc.operation_time = operation_time;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
@@ -969,7 +974,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         cout << "Total Test Count: " << testCount << endl;
         cout << "Total Elapsed Time: " << time.count() << "s" << endl;
         bisearch_time = BinarySearchReadTime(fullset).count();
-        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+        cout << "Binary Search Operate Time: " << operation_time << "s" << endl;
         cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
         cout << endl;
 
@@ -981,8 +986,9 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
-        tc.operation_time = binsearch_operatetime;
+        tc.operation_time = operation_time;
         tc.binsearch_time = bisearch_time;
+        tc.operation_time = operation_time;
         tc.filterID = bf.getFilterCode();
 
         // Write performance data to the CSV
@@ -1263,9 +1269,9 @@ int main()
     };
 
     string hashSchemes[] = {
-        Hash32::SCHEME_SERIAL,
+        // Hash32::SCHEME_SERIAL,
         Hash32::SCHEME_KIRSCH_MITZENMACHER,
-        Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
+        // Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
     };
 
     for (auto hashFunc : hashFuncs) {
