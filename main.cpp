@@ -689,8 +689,10 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
         // # Initialization
         system("mkdir -p ./icisn-csv");
-        string perfFilename = "./icisn-csv/icisn-result-" + to_string(millisec) + ".csv";
-        string confFilename = "./icisn-csv/icisn-config-" + to_string(millisec) + ".csv";
+        string postfix = algo + "__" + scheme + "__" + to_string(millisec);
+        string perfFilename = "./icisn-csv/icisn-result-" + postfix + ".csv";
+        string confFilename = "./icisn-csv/icisn-config-" + postfix + ".csv";
+
         ofstream perf(perfFilename);
         ofstream conf(confFilename);
         if (!perf || !conf) {
