@@ -142,6 +142,7 @@ public:
         }
         auto end = chrono::high_resolution_clock::now();
         binsearch_operatetime = chrono::duration<double>(end-start).count();
+        cout << "[INFO] BinarySearchWrite: Inserted " << data.size() << " elements. Time: " << binsearch_operatetime << "s\n";
         this->nonkeys = (set5);
         this->getEntrySize();
     }
@@ -155,6 +156,7 @@ public:
         }
         auto end = chrono::high_resolution_clock::now();
         binsearch_operatetime = chrono::duration<double>(end-start).count();
+        cout << "[INFO] BinarySearchWrite: Inserted " << data.size() << " elements. Time: " << binsearch_operatetime << "s\n";
         this->nonkeys = mergeVectors((set2), (set3), (set4));
         this->getEntrySize();
     }
@@ -168,6 +170,7 @@ public:
         }
         auto end = chrono::high_resolution_clock::now();
         binsearch_operatetime = chrono::duration<double>(end-start).count();
+        cout << "[INFO] BinarySearchWrite: Inserted " << data.size() << " elements. Time: " << binsearch_operatetime << "s\n";
         this->nonkeys = mergeVectors((set3), (set4));
         this->getEntrySize();
     }
@@ -181,6 +184,7 @@ public:
         }
         auto end = chrono::high_resolution_clock::now();
         binsearch_operatetime = chrono::duration<double>(end-start).count();
+        cout << "[INFO] BinarySearchWrite: Inserted " << data.size() << " elements. Time: " << binsearch_operatetime << "s\n";
         this->nonkeys = mergeVectors( (set4), (set5) );
         this->getEntrySize();
     }
@@ -464,12 +468,13 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
     Result TestFP(vector<string> dataArray, bool correctAns=true) {
         Result result;
         for (auto data : dataArray) {
-            vector<uint8_t> dataBytes = getAsciiBytes(data);
+            
             auto start = chrono::high_resolution_clock::now();
-            if (bf.Test(dataBytes) != correctAns) {
-                result.FP.push_back(data);
-            }
+            vector<uint8_t> dataBytes = getAsciiBytes(data);
+            bool testResult = bf.Test(dataBytes);
             auto end = chrono::high_resolution_clock::now();
+            
+            if (testResult != correctAns) result.FP.push_back(data);
             result.elapsed += end - start;
         }
         result.finalize(dataArray.size());
@@ -682,8 +687,8 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         auto duration = now.time_since_epoch();
         auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
         // # Initialization
-        string perfFilename = "./icisn-csv/icisn-result-" + to_string(millisec) + ".csv";
-        string confFilename = "./icisn-csv/icisn-config-" + to_string(millisec) + ".csv";
+        string perfFilename = "./icisn-csv/icisn-result-" +algo+"__"+scheme+ ".csv";
+        string confFilename = "./icisn-csv/icisn-config-" +algo+"__"+scheme+ ".csv";
         ofstream perf(perfFilename);
         ofstream conf(confFilename);
         if (!perf || !conf) {
@@ -695,7 +700,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         TestCase tc;
         perf << tc.getHeader();
 
-        this->initTester800();
+        this->initTester600();
         cout << endl;
 
         // # Test node 1
@@ -733,7 +738,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP((set4), true);
+        result_1 = TestFP((set4), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
@@ -741,7 +746,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
 
         result_1 = TestFP((set5), false);
         fcount += result_1.FP.size();
-        tc.f4 = result_1.FP.size();
+        tc.f5 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
@@ -758,8 +763,8 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         // Record the removal performance into TestCase
         tc.test_case = "InsertSet1,2,3";
         // tc.adding_time = elapsed;
-        tc.key_set = "1,2,3,4";
-        tc.nonkey_set = "5";
+        tc.key_set = "1,2,3";
+        tc.nonkey_set = "4,5";
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
@@ -805,7 +810,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP((set4), true);
+        result_1 = TestFP((set4), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
@@ -813,7 +818,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
 
         result_1 = TestFP((set5), false);
         fcount += result_1.FP.size();
-        tc.f4 = result_1.FP.size();
+        tc.f5 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
@@ -829,8 +834,8 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
 
         // Record the removal performance into TestCase
         tc.test_case = "RemoveSet1";
-        tc.key_set = "2,3,4";
-        tc.nonkey_set = "1,5";
+        tc.key_set = "2,3";
+        tc.nonkey_set = "1,4,5";
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
@@ -875,7 +880,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP((set4), true);
+        result_1 = TestFP((set4), false);
         fcount += result_1.FP.size();
         tc.f4 = result_1.FP.size();
         testCount += result_1.testCount;
@@ -883,7 +888,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
 
         result_1 = TestFP((set5), false);
         fcount += result_1.FP.size();
-        tc.f4 = result_1.FP.size();
+        tc.f5 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
@@ -900,8 +905,8 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         // Record the removal performance into TestCase
         tc.test_case = "InsertSet1";
         // tc.adding_time = elapsed;
-        tc.key_set = "1,2,3,4";
-        tc.nonkey_set = "5";
+        tc.key_set = "1,2,3";
+        tc.nonkey_set = "4,5";
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
@@ -952,9 +957,9 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
-        result_1 = TestFP((set5), true);
+        result_1 = TestFP((set5), false);
         fcount += result_1.FP.size();
-        tc.f4 = result_1.FP.size();
+        tc.f5 = result_1.FP.size();
         testCount += result_1.testCount;
         time += result_1.elapsed;
 
@@ -971,8 +976,8 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         // Record the removal performance into TestCase
         tc.test_case = "InsertSet4";
         // tc.adding_time = elapsed;
-        tc.key_set = "1,2,3,4,5";
-        tc.nonkey_set = "";
+        tc.key_set = "1,2,3,4";
+        tc.nonkey_set = "5";
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();

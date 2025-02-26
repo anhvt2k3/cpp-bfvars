@@ -19,6 +19,7 @@ Makefile
 CMakeLists.txt.user
 
 # Ignore Visual Studio Code settings
+.vscode
 .vscode/
 .vscode/c_cpp_properties.json
 smhasher-master/

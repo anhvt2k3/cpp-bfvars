@@ -144,6 +144,8 @@ namespace BloomFilterModels
             
             //: if a region is all empty in case each region is a counter, reset the region collide status
             }
+            
+            this->count--;
             return removable;
         }
         void updateCollideStatus() {

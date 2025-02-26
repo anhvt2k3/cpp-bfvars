@@ -2,6 +2,10 @@
 #include <vector>
 #include <stdexcept>
 #include <cstdint>
+#include <string>
+// #include "test.h"
+
+using namespace std;
 
 class Buckets {
 public:
@@ -71,17 +75,26 @@ public:
     }
 };
 
-
-
-int main() {
-    try {
+void recheckDataTest()
+{
+    try
+    {
         int count = 300000;
         Buckets buckets(count, 4);
         buckets.recheckData();
-
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "Error: " << e.what() << std::endl;
     }
+}
+
+
+int main() {
+    // return recheckDataTest();
+    cout << ("E00000000011" < "E00000000022");
+        
 
     return 0;
 }
+

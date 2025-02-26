@@ -57,6 +57,9 @@
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "files.associations": {
+    "*.sqlbook": "sql",
+    "*.ndjson": "jsonl",
+    "*.dbclient-js": "javascript",
     "*.txt": "lua",
     "*.j": "lua",
     "array": "cpp",
@@ -112,6 +115,8 @@
     "sstream": "cpp",
     "map": "cpp",
     "set": "cpp",
-    "iomanip": "cpp"
+    "iomanip": "cpp",
+    "unordered_set": "cpp",
+    "optional": "cpp"
   }
 }
