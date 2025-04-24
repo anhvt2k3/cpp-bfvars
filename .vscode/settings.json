@@ -57,11 +57,11 @@
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "files.associations": {
+    "*.txt": "lua",
+    "*.j": "lua",
     "*.sqlbook": "sql",
     "*.ndjson": "jsonl",
     "*.dbclient-js": "javascript",
-    "*.txt": "lua",
-    "*.j": "lua",
     "array": "cpp",
     "atomic": "cpp",
     "bit": "cpp",
@@ -117,6 +117,16 @@
     "set": "cpp",
     "iomanip": "cpp",
     "unordered_set": "cpp",
-    "optional": "cpp"
-  }
+    "optional": "cpp",
+    "thread": "cpp",
+    "complex": "cpp",
+    "bitset": "cpp",
+    "condition_variable": "cpp",
+    "cstring": "cpp",
+    "mutex": "cpp",
+    "semaphore": "cpp",
+    "shared_mutex": "cpp",
+    "stop_token": "cpp"
+  },
+  "cmake.sourceDirectory": "D:/Desktop/csbf/utils/hasher/hash-suite"
 }

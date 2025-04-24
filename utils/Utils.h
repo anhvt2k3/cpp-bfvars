@@ -41,6 +41,21 @@ namespace BloomFilterApp
             double optimalM = -std::ceil(static_cast<double>(n) * std::log(fpRate) / std::pow(std::log(2), 2));
             return static_cast<uint32_t>(optimalM);
         }
+        
+        static uint32_t OptimalM_perKCounting(uint32_t n, double fpRate, uint32_t k)
+        {
+            double optimalM = -std::ceil(static_cast<double>(n) * std::log(fpRate) / k * std::pow(std::log(2), 2));
+            return static_cast<uint32_t>(optimalM);
+        }
+
+        static uint32_t OptimalK_Counting(
+            long long m, // total number of bits (buckets)
+            long long n // max number of elements
+        )
+        {
+            double optimalK = std::ceil(m * std::log(2) / n);
+            return static_cast<uint32_t>(optimalK);
+        }
 
         static uint32_t OptimalKCounting(double fpRate)
         {

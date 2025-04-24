@@ -1,3 +1,4 @@
+#pragma once
 #include "BaseBF.h"
 #include "./CountingBF.h"
 

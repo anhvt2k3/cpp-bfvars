@@ -1,3 +1,4 @@
+#pragma once
 #include "BaseBF.h"
 #include "./CountingBF.h"
 
@@ -23,7 +24,7 @@ public:
         }
 
         // L is a number of 2^i for i>=2
-        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0) override {
+        void Init(uint32_t n, uint8_t b = Defaults::CBF_BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0) {
             StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, k, countExist);
             initDL(Defaults::MIN_INCREMENT);
         }

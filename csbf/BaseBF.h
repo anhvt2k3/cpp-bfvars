@@ -30,18 +30,20 @@ namespace BloomFilterModels
         virtual double FPrate() const = 0;
         virtual uint32_t K() const = 0;
         virtual uint32_t Count() const = 0;
-        virtual string getHashAlgo() const = 0;
-        virtual string getHashScheme() const = 0;
-        virtual uint32_t BucketMaxValue() const = 0;
-        virtual uint32_t BucketCount() const = 0;
-
-        virtual bool Test(const std::vector<uint8_t> &data) const = 0;
-        virtual AbstractFilter &Add(const std::vector<uint8_t> &data) = 0;
-
+        
         // virtual AbstractFilter& Reset() = 0;
-        // # Specialized methods
+        virtual bool Test(const std::vector<uint8_t> &data) const = 0;
+        
+                        // # Specialized methods
+        uint32_t BucketMaxValue() const { return 0; };
+        uint32_t BucketCount() const { return 0; };
+        string getHashAlgo() const { return "Method is not implemented!"; };
+        string getHashScheme() const { return "Method is not implemented!"; };
+
+        AbstractFilter &Add(const std::vector<uint8_t> &data) { return *this; }
+
         virtual void Init(
-            uint32_t n,
+            uint32_t n, // estimated total size of data
             uint8_t b = Defaults::BUCKET_SIZE,
             double fpRate = Defaults::FALSE_POSITIVE_RATE,
             uint32_t k = 0,
@@ -82,7 +84,7 @@ namespace BloomFilterModels
     {
     protected:
     public:
-        virtual void Init(
+        void Init(
             uint32_t n,
             uint8_t b = Defaults::BUCKET_SIZE,
             double fpRate = Defaults::FALSE_POSITIVE_RATE,
@@ -135,8 +137,7 @@ namespace BloomFilterModels
             res += "False Positive Rate: " + to_string(FPrate()) + "\n";
             res += "Number of Items Added: " + to_string(Count()) + "\n";
             res += "_ _ _ Buckets Configuration _ _ _\n";
-            res += "Bucket Size per: " + to_string(buckets->bucketSize) + " (Max value: " + to_string(buckets->Max) + ")"
-                                                                                                                      "\n";
+            res += "Bucket Size per: " + to_string(buckets->bucketSize) + " (Max value: " + to_string(buckets->Max) + ")""\n";
             res += "Bucket Count: " + to_string(buckets->count) + "\n";
             return res;
         }
@@ -166,6 +167,9 @@ namespace BloomFilterModels
     {
     public:
         vector<shared_ptr<StaticFilter>> filters;
+
+        DynamicFilter() {}
+        DynamicFilter(vector<shared_ptr<StaticFilter>> filter) : filters(filter) {}
 
         uint32_t BucketSize() const
         {
@@ -198,7 +202,7 @@ namespace BloomFilterModels
         }
 
         virtual void Init(
-            uint32_t n,
+            uint32_t n, // equal maxCapacity, Capacity
             uint8_t b = Defaults::Cuckoo::BUCKET_CAPACITY,
             double fpRate = Defaults::FALSE_POSITIVE_RATE,
             uint32_t k = 0,

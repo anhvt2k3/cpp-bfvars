@@ -1,6 +1,8 @@
+#pragma once
 #include "../utils/Utils.h"
 #include "CountingBF.h"
 #include "DelBF.h"
+#include "BF.h"
 
 using namespace std;
 namespace BloomFilterModels {
