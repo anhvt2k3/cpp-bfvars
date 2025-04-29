@@ -187,7 +187,34 @@ public:
         this->getEntrySize();
     }
 
-    
+    /*
+        `n`: is for number of sets need to be key set.
+        Change make to `keys`, `nonkeys`, `sets[].isKey`
+    */
+    void initTesterwNKSet(long long n) {
+        vector<int> key_codes;
+        if (n > sets.size()) throw exception();
+        while (key_codes.size() < n) {
+            auto code = rand() % sets.size();
+            if (find(key_codes.begin(),key_codes.end(),code) != key_codes.end())
+            {
+                key_codes.push_back(code);
+                sets[code].isKey = true;
+            }
+        }
+        for (auto set : sets) {
+            if (set.isKey) {
+                binsearch_operatetime = 0;
+                auto start = chrono::high_resolution_clock::now();
+                for (auto item : set.data) keys.push_back(item);
+                auto end = chrono::high_resolution_clock::now(); 
+                binsearch_operatetime += chrono::duration<double>(end-start).count();
+            } else {
+                for (auto item : set.data) nonkeys.push_back(item);
+            }
+        }
+    }
+
     void getEntrySize() {
         cout << "Keys: " << keys.size() << endl;
         cout << "NonKeys: " << nonkeys.size() << endl;
@@ -802,7 +829,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         TestCase tc;
         perf << tc.getHeader();
 
-        this->initTester600();
+        initTesterwNKSet(3);
         cout << endl;
 
         // # Test node 1
@@ -816,43 +843,19 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.nof_collision = res.nof_collision;
         tc.nof_operand = res.testCount;
 
-        // # ReadTimeMENT
+        // # ReadTimeMENT 
         long long int fcount = 0;
         long long int testCount = 0;
         Result result_1;
         auto time = chrono::duration<double>(0);
+        
         for (auto set : sets) {
-
+            result_1 = TestFP(set.data, set.isKey);
+            fcount += result_1.FP.size();
+            tc.f1 = result_1.FP.size();
+            testCount += result_1.testCount;
+            time += result_1.elapsed;
         }
-        result_1 = TestFP(set1, true);
-        fcount += result_1.FP.size();
-        tc.f1 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set2, true);
-        fcount += result_1.FP.size();
-        tc.f2 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set3, true);
-        fcount += result_1.FP.size();
-        tc.f3 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set4, false);
-        fcount += result_1.FP.size();
-        tc.f4 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set5, false);
-        fcount += result_1.FP.size();
-        tc.f5 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
 
         float accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
         cout << fixed << setprecision(6);
@@ -869,222 +872,6 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         // tc.adding_time = elapsed;
         tc.key_set = "1,2,3";
         tc.nonkey_set = "4,5";
-        tc.test_size = testCount;
-        tc.accuracy = accuracy;
-        tc.test_time = time.count();
-        tc.operation_time = binsearch_operatetime;
-        tc.binsearch_time = bisearch_time;
-        tc.filterID = bf.getFilterCode();
-
-        // Write performance data to the CSV
-        perf << tc.toCSVString();
-        tc.reset();
-        // # END ReadTimeMENT
-
-        // # Test node 2
-        // Remove set R -> time
-        res = testRemove_v1(set1);
-        BinarySearchRemove(set1);
-        elapsed = res.elapsed.count();
-        cout << "Removing 1 Set Elapsed time: " << elapsed << "s" << endl;
-        tc.adding_time = elapsed;
-        tc.nof_removable = res.nof_removable;
-        tc.nof_operand = res.testCount;
-
-        // # ReadTimeMENT
-        // Check set S-R over U -> accuracy
-        fcount = 0;
-        testCount = 0;
-        time = chrono::duration<double>(0);
-
-        result_1 = TestFP(set1, false);
-        fcount += result_1.FP.size();
-        tc.f1 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set2, true);
-        fcount += result_1.FP.size();
-        tc.f2 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set3, true);
-        fcount += result_1.FP.size();
-        tc.f3 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set4, false);
-        fcount += result_1.FP.size();
-        tc.f4 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set5, false);
-        fcount += result_1.FP.size();
-        tc.f5 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
-        cout << fixed << setprecision(6);
-        cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
-        cout << "Total Test Count: " << testCount << endl;
-        cout << "Total Elapsed Time: " << time.count() << "s" << endl;
-        bisearch_time = BinarySearchReadTime(fullset).count();
-        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
-        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
-        cout << endl;
-
-        // Record the removal performance into TestCase
-        tc.test_case = "RemoveSet1";
-        tc.key_set = "2,3";
-        tc.nonkey_set = "1,4,5";
-        tc.test_size = testCount;
-        tc.accuracy = accuracy;
-        tc.test_time = time.count();
-        tc.operation_time = binsearch_operatetime;
-        tc.binsearch_time = bisearch_time;
-        tc.filterID = bf.getFilterCode();
-
-        // Write performance data to the CSV
-        perf << tc.toCSVString();
-        tc.reset();
-        // # END ReadTimeMENT
-
-        // # Test node 3
-        // Insert set S -> time
-        res = testInserting_v1(set1);
-        BinarySearchWrite(set1);
-        elapsed = res.elapsed.count();
-        cout << "Inserting 1 Set Elapsed time: " << elapsed << "s" << endl;
-        tc.adding_time = elapsed;
-        tc.nof_collision = res.nof_collision;
-        tc.nof_operand = res.testCount;
-
-        // # ReadTimeMENT
-        fcount = 0;
-        testCount = 0;
-        time = chrono::duration<double>(0);
-
-        result_1 = TestFP(set1, true);
-        fcount += result_1.FP.size();
-        tc.f1 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set2, true);
-        fcount += result_1.FP.size();
-        tc.f2 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set3, true);
-        fcount += result_1.FP.size();
-        tc.f3 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set4, false);
-        fcount += result_1.FP.size();
-        tc.f4 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set5, false);
-        fcount += result_1.FP.size();
-        tc.f5 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
-        cout << fixed << setprecision(6);
-        cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
-        cout << "Total Test Count: " << testCount << endl;
-        cout << "Total Elapsed Time: " << time.count() << "s" << endl;
-        bisearch_time = BinarySearchReadTime(fullset).count();
-        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
-        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
-        cout << endl;
-
-        // Record the removal performance into TestCase
-        tc.test_case = "InsertSet1";
-        // tc.adding_time = elapsed;
-        tc.key_set = "1,2,3";
-        tc.nonkey_set = "4,5";
-        tc.test_size = testCount;
-        tc.accuracy = accuracy;
-        tc.test_time = time.count();
-        tc.operation_time = binsearch_operatetime;
-        tc.binsearch_time = bisearch_time;
-        tc.filterID = bf.getFilterCode();
-
-        // Write performance data to the CSV
-        perf << tc.toCSVString();
-        tc.reset();
-        // # END ReadTimeMENT
-
-        // # Test node 4
-        // Insert set S -> time
-        res = testInserting_v1(set5);
-        BinarySearchWrite(set5);
-        elapsed = res.elapsed.count();
-        cout << "Inserting Set 4 Elapsed time: " << elapsed << "s" << endl;
-        tc.adding_time = elapsed;
-        tc.nof_collision = res.nof_collision;
-        tc.nof_operand = res.testCount;
-
-        // # ReadTimeMENT
-        fcount = 0;
-        testCount = 0;
-        time = chrono::duration<double>(0);
-
-        result_1 = TestFP(set1, true);
-        fcount += result_1.FP.size();
-        tc.f1 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set2, true);
-        fcount += result_1.FP.size();
-        tc.f2 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set3, true);
-        fcount += result_1.FP.size();
-        tc.f3 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set4, true);
-        fcount += result_1.FP.size();
-        tc.f4 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        result_1 = TestFP(set5, false);
-        fcount += result_1.FP.size();
-        tc.f5 = result_1.FP.size();
-        testCount += result_1.testCount;
-        time += result_1.elapsed;
-
-        accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
-        cout << fixed << setprecision(6);
-        cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
-        cout << "Total Test Count: " << testCount << endl;
-        cout << "Total Elapsed Time: " << time.count() << "s" << endl;
-        bisearch_time = BinarySearchReadTime(fullset).count();
-        cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
-        cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
-        cout << endl;
-
-        // Record the removal performance into TestCase
-        tc.test_case = "InsertSet4";
-        // tc.adding_time = elapsed;
-        tc.key_set = "1,2,3,4";
-        tc.nonkey_set = "5";
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();

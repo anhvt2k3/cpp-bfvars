@@ -50,7 +50,7 @@ namespace BloomFilterApp
 
         static uint32_t OptimalK_Counting(
             long long m, // total number of bits (buckets)
-            long long n // max number of elements
+            long long n // max number of elements (n,maxCApacity,Capacity())
         )
         {
             double optimalK = std::ceil(m * std::log(2) / n);
