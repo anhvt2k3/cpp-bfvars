@@ -234,6 +234,24 @@ public:
         return bf.K();
     }
 
+    string getKeySet() {
+        string res="";
+        for (int i=0; i< sets.size(); i++) {
+            res += sets[i].isKey? to_string(sets[i].setCode)+",":"";
+        }
+        res.pop_back();
+        return res;
+    }
+    
+    string getNonkeySet() {
+        string res="";
+        for (int i=0; i< sets.size(); i++) {
+            res += (!sets[i].isKey)? to_string(sets[i].setCode)+",":"";
+        }
+        res.pop_back();
+        return res;
+    }
+
 // Function: Insert and Sort
 void BinarySearchWrite(vector<string> dataarr) {
     
@@ -299,10 +317,10 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
 
     cout << "[INFO] BinarySearchRemove: Removed " << subtractArray.size() << " elements. Time: " << binsearch_operatetime << "s\n";
 }
-    /*
-        Input: vector of strings || Output: chrono::duration<double> as total time elapsed
-        Reset the filter then insert
-    */
+
+/*
+    // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
+    // Reset the filter then insert
     chrono::duration<double> testAdding(vector<string> dataArray) {
         chrono::duration<double> total_elapsed(0);
         cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
@@ -348,7 +366,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         return total_elapsed;
         }
     }
-
+*/
     Result testAdding_v1(vector<string> dataArray) {
         Result res;
         res.nof_collision = 0;
@@ -402,6 +420,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         return res;
     }
 
+/*    
     chrono::duration<double> testInserting(vector<string> dataArray) {
         chrono::duration<double> total_elapsed(0);
         cout << "Testing Inserting of "<< dataArray.size() <<" keys!" << endl;
@@ -416,6 +435,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         }
         return total_elapsed;
     }
+*/
 
     Result testInserting_v1(vector<string> dataArray) {
         Result res;
@@ -454,6 +474,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         return total_elapsed;
     }
 
+/*
     // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
     chrono::duration<double> testRemove(vector<string> dataArray) {
         chrono::duration<double> total_elapsed(0);
@@ -469,6 +490,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         }
         return total_elapsed;
     }
+*/
 
     Result testRemove_v1(vector<string> dataArray) {
         Result res;
@@ -868,7 +890,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         cout << endl;
 
         // Record the removal performance into TestCase
-        tc.test_case = "InsertSet1,2,3";
+        tc.test_case = "InsertFullKey";
         // tc.adding_time = elapsed;
         tc.key_set = "1,2,3";
         tc.nonkey_set = "4,5";
