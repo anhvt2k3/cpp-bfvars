@@ -1,3 +1,7 @@
 [submodule "utils/hasher"]
 	path = utils/hasher
 	url = https://github.com/Nanovative/hasher.git
+
+[submodule "utils/logger/spdlog"]
+	path = utils/logger/spdlog
+	url = https://github.com/gabime/spdlog.git
