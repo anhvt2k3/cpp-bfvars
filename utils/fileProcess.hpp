@@ -1,6 +1,8 @@
 #pragma once
 #include <fstream>
 #include <vector>
+#include <sstream>     // For std::ostringstream
+#include <iomanip>     // For std::setprecision and std::fixed
 #include "../csbf/Buckets.h"
 #include "../csbf/BaseBF.h"
 

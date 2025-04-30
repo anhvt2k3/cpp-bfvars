@@ -126,7 +126,9 @@
     "mutex": "cpp",
     "semaphore": "cpp",
     "shared_mutex": "cpp",
-    "stop_token": "cpp"
+    "stop_token": "cpp",
+    "climits": "cpp"
   },
-  "cmake.sourceDirectory": "D:/Desktop/csbf/utils/hasher/hash-suite"
+  "cmake.sourceDirectory": "D:/Desktop/csbf/utils/hasher/hash-suite",
+  "C_Cpp.dimInactiveRegions": false
 }

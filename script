@@ -2,7 +2,7 @@
 `note`: "-lssl -lcrypto" flag must follow with the *.cpp file
 
 ! Classic run
-g++ -o D:\Desktop\csbf\main D:\Desktop\csbf\main.cpp -lssl -lcrypto; D:\Desktop\csbf\main.exe > D:\Desktop\csbf\log.txt
+g++ -o D:\Desktop\csbf\main D:\Desktop\csbf\main.cpp D:\Desktop\csbf\utils\hasher\hash-suite\Random.cpp -lssl -lcrypto; D:\Desktop\csbf\main bank > D:\Desktop\csbf\log.txt
 
 ! Run with other .cpp files
 g++ -o D:\Desktop\csbf\main D:\Desktop\csbf\main.cpp D:\Desktop\csbf\tester\*.cpp -lssl -lcrypto; D:\Desktop\csbf\main.exe > D:\Desktop\csbf\log.txt

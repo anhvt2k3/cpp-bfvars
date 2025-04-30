@@ -117,6 +117,24 @@ vector<uint8_t> getAsciiBytes(const string& str) {
     return bytes;
 }
 
+string getKeySet() {
+    string res="";
+    for (int i=0; i< sets.size(); i++) {
+        res += sets[i].isKey? to_string(sets[i].setCode)+",":"";
+    }
+    res.pop_back();
+    return res;
+}
+
+string getNonkeySet() {
+    string res="";
+    for (int i=0; i< sets.size(); i++) {
+        res += (!sets[i].isKey)? to_string(sets[i].setCode)+",":"";
+    }
+    res.pop_back();
+    return res;
+}
+
 class Tester {
 public:
     BloomFilterModels::AbstractFilter& bf;
@@ -232,24 +250,6 @@ public:
     // Return number of hash functions
     uint32_t HashFunctionCount() {
         return bf.K();
-    }
-
-    string getKeySet() {
-        string res="";
-        for (int i=0; i< sets.size(); i++) {
-            res += sets[i].isKey? to_string(sets[i].setCode)+",":"";
-        }
-        res.pop_back();
-        return res;
-    }
-    
-    string getNonkeySet() {
-        string res="";
-        for (int i=0; i< sets.size(); i++) {
-            res += (!sets[i].isKey)? to_string(sets[i].setCode)+",":"";
-        }
-        res.pop_back();
-        return res;
     }
 
 // Function: Insert and Sort
@@ -845,7 +845,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         conf.close();
     }
 
-    void Std_testsuite_v1(std::ofstream &perf, std::ofstream &conf)
+    void MergedFilterTestsuite(std::ofstream &perf, std::ofstream &conf)
     {
         // Write headers to CSV files
         TestCase tc;
@@ -854,6 +854,23 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         initTesterwNKSet(3);
         cout << endl;
 
+        // # Evaluate for FP and Latency
+        doTestAndLog(tc, perf);
+ 
+        Configuration cf(&bf);
+        conf << cf.getHeader();
+        cf.bs_memory = cf.bs_memory = keys.capacity() * (sizeof(std::string) + keys[0].capacity()) * 8;
+        conf << cf.toCSVString();
+
+        // # Finalization
+        cout << "Test done running!" << endl;
+
+        perf.close();        
+        conf.close();
+    }
+
+    void doAddAndLog(TestCase &tc)
+    {
         // # Test node 1
         // Insert set S -> time
         cout << "BEFORE ADDING" << endl;
@@ -864,14 +881,17 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.adding_time = elapsed;
         tc.nof_collision = res.nof_collision;
         tc.nof_operand = res.testCount;
+    }
 
-        // # ReadTimeMENT 
+    void doTestAndLog(TestCase &tc, std::ofstream &perf)
+    {
         long long int fcount = 0;
         long long int testCount = 0;
         Result result_1;
         auto time = chrono::duration<double>(0);
-        
-        for (auto set : sets) {
+
+        for (auto set : sets)
+        {
             result_1 = TestFP(set.data, set.isKey);
             fcount += result_1.FP.size();
             tc.f1 = result_1.FP.size();
@@ -892,8 +912,8 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         // Record the removal performance into TestCase
         tc.test_case = "InsertFullKey";
         // tc.adding_time = elapsed;
-        tc.key_set = "1,2,3";
-        tc.nonkey_set = "4,5";
+        tc.key_set = getKeySet();
+        tc.nonkey_set = getNonkeySet();
         tc.test_size = testCount;
         tc.accuracy = accuracy;
         tc.test_time = time.count();
@@ -904,19 +924,6 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         // Write performance data to the CSV
         perf << tc.toCSVString();
         tc.reset();
-        // # END ReadTimeMENT
-
-        Configuration cf(&bf);
-        conf << cf.getHeader();
-        cf.bs_memory = cf.bs_memory = keys.capacity() * (sizeof(std::string) + keys[0].capacity()) * 8;
-        conf << cf.toCSVString();
-
-        // # Finalization
-
-        cout << "Test done running!" << endl;
-
-        perf.close();
-        conf.close();
     }
 
     void ICISN_testsuite(string _algo, string _scheme) 
@@ -950,18 +957,19 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         auto duration = now.time_since_epoch();
         auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
         // # Initialization
+        
         string postfix = algo + "__" + scheme + "__" + to_string(millisec);
         string perfFilename = "./monitor/capstone-results/blacklisting/csv/blacklisting-result-" + postfix + ".csv";
         string confFilename = "./monitor/capstone-results/blacklisting/csv/blacklisting-config-" + postfix + ".csv";
-        
         ofstream perf(perfFilename);
         ofstream conf(confFilename);
         if (!perf || !conf) {
             cerr << "Failed to open output files" << endl;
-            return;
+            return 1;
         }
 
-        Std_testsuite(perf, conf);
+        MergedFilterTestsuite(perf, conf);
+        return 0;
     }
     
 /*
@@ -1016,15 +1024,18 @@ std::vector<std::vector<std::shared_ptr<StaticFilter>>> iterateTypes(
 #define Banking
 int main(int argc, char* argv[])
 {
-    string mode = "bus";
+    string mode = "bank";
     if (argc > 1) mode = argv[1];
     if (mode == "bank") {
         import_Bankblacklisting_data();
     } else if (mode == "bench") {
         import_Benchmarking_data();
+    } else if (mode == "bus") {
+        import_Busticketing_data();
     } else {
         import_Busticketing_data();
     }
+
 #ifdef AtomicI
     ofstream perf("csvs/stdsuite-result.csv");
     ofstream conf("csvs/stdsuite-config.csv");
@@ -1174,7 +1185,7 @@ int main(int argc, char* argv[])
             for (int i=0; i<instancesPerType; i++) {
                 auto _filter = filterSet[i];
                 _filter->Init(sets[i].data.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 0, 0, algo, scheme);
-                for (auto item: sets[i].data) {
+                for (auto item : sets[i].data) {
                     auto item_ = getAsciiBytes(item);
                     _filter->Add(item_);
                 }
