@@ -8,9 +8,14 @@
 
 
 struct TestCase {
+    long long id = 0;
     string filterID = "NaN";
+    string filterName = "NaN";
+    string algo = "NaN";
+    string scheme = "NaN";
     string test_case = "NaN";
     double adding_time = 0;
+    double merge_time = 0;
     string key_set = "NaN";
     string nonkey_set = "NaN";
     double f1 = 0;
@@ -25,15 +30,22 @@ struct TestCase {
     int nof_collision = 0;
     int nof_removable = 0;
     int nof_operand = 0;
+    double bf_memory = 0;
+    double bs_memory = 0;
     double operation_time = 0;
     double binsearch_time = 0;
 
     TestCase() {}
 
     void reset() {
+        id = 0;
         filterID = "NaN";
+        filterName = "NaN";
+        algo = "NaN";
+        scheme = "NaN";
         test_case = "NaN";
         adding_time = 0;
+        merge_time = 0;
         key_set = "NaN";
         nonkey_set = "NaN";
         f1 = 0;
@@ -48,6 +60,8 @@ struct TestCase {
         nof_collision = 0;
         nof_removable = 0;
         nof_operand = 0;
+        bf_memory = 0;
+        bs_memory = 0;
         operation_time = 0;
         binsearch_time = 0;
     }

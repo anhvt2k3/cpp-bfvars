@@ -15,8 +15,9 @@ namespace BloomFilterModels
         }
         DeletableBloomFilter(
             uint32_t n,
-            uint8_t b,
-            double fpRate,
+            uint8_t b = 1,
+            double fpRate = Defaults::FALSE_POSITIVE_RATE,
+            uint32_t k = 0,
             uint32_t countExist = 0,
             string algorithm = Defaults::HASH_ALGORITHM,
             string scheme = Defaults::HASH_SCHEME)
@@ -107,7 +108,7 @@ namespace BloomFilterModels
 
         // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
-        DeletableBloomFilter &Add(const std::vector<uint8_t> &data)
+        DeletableBloomFilter &Add(const std::vector<uint8_t> &data) 
         {
             vector<uint32_t> hashes = hashGen->Execute(data, algorithm, scheme);
 

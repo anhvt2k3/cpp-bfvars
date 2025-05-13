@@ -13,13 +13,14 @@ namespace BloomFilterModels {
         // time_t syncDate; // Synchronization date
 
         // Adds a new filter to the list with restricted false-positive rate.
-        int AddFilter(const vector<vector<uint8_t>>& data = {}) {
+        int AddFilter() {
             // Calculate false-positive rate and capacity for the new filter
-            filters.push_back(make_shared<CountingBloomFilter>(c, 4, fp));
+            filters.push_back(make_shared<StandardBloomFilter>(c, 1, fp));
             return 0;
         }
 public:
         DynamicBloomFilter(uint32_t c = Defaults::MAX_COUNT_NUMBER, double fp = Defaults::FALSE_POSITIVE_RATE) : c(c), fp(fp) {
+            cout << "DynStdBF created without params.\n";
             AddFilter(); // Add the first filter
         }
 
@@ -150,13 +151,14 @@ public:
         // time_t syncDate; // Synchronization date
 
         // Adds a new filter to the list with restricted false-positive rate.
-        int AddFilter(const vector<vector<uint8_t>>& data = {}) {
+        int AddFilter() {
             // Calculate false-positive rate and capacity for the new filter
             filters.push_back(make_shared<CountingBloomFilter>(c, 4, fp));
             return 0;
         }
 public:
         DynamicStdCountingBloomFilter(uint32_t c = Defaults::MAX_COUNT_NUMBER, double fp = Defaults::FALSE_POSITIVE_RATE) : c(c), fp(fp) {
+            cout << "DynCBF created without params.\n";
             AddFilter(); // Add the first filter
         }
 

@@ -11,3 +11,4 @@
 #include "DynamicBF.h"
 #include "ScalableBF.h"
 #include "MergeableFilter.h"
+#include "MergeCBF.h"

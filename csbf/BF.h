@@ -3,17 +3,23 @@
 #include "../utils/Utils.h"
 
 using namespace std;
+#define Hashgen
+
 namespace BloomFilterModels {
 
     class StandardBloomFilter : public StaticFilter {
 public:
-        StandardBloomFilter() {}
-        StandardBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0) 
-            : StaticFilter(n, Defaults::BUCKET_SIZE, fpRate, k, countExist)  // Call the base class constructor directly
-        {}
+        StandardBloomFilter() {
+            cout << "StdBF created without params.\n";
+        }
+        StandardBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0, string algorithm = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME) 
+        : StaticFilter(n, b, fpRate, k, countExist, algorithm, scheme)  // Call the base class constructor directly
+        {
+            cout << "Standard BF created with maxCapacity="<<n<<".\n";
+        }
 
-        void Init(uint32_t n, uint8_t b = Defaults::BUCKET_SIZE, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0)  {
-            StaticFilter::Init(n, Defaults::BUCKET_SIZE, fpRate, k, countExist);
+        void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0, string algorithm = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME)  {
+            StaticFilter::Init(n, 1, fpRate, k, countExist, algorithm, scheme);
         }
 
         string getFilterName() const {
@@ -49,6 +55,37 @@ public:
             return fpRate;
         }
 
+    #ifdef Hashgen
+        // Adds the data to the filter->
+        // Returns a reference to the filter for chaining.
+        StandardBloomFilter& Add(const std::vector<uint8_t>& data) {
+            vector<uint32_t> hashes = hashGen->Execute(data, algorithm, scheme);
+            // Set the K bits in the bucket array
+            for (auto h : hashes) {
+                // cout << "cbf-Adding: " << uint32_t((lower + upper * i) % m) << endl;
+                buckets->Set(uint32_t(h), 1);
+            }
+    
+            this->count++;
+            return *this;
+        }
+
+        // Tests for membership of the data.
+        // Returns true if the data is probably a member, false otherwise.
+        bool Test(const std::vector<uint8_t>& data) const {
+            vector<uint32_t> hashes = hashGen->Execute(data, algorithm, scheme);
+            // Check if all hash function indices are set in the bucket array
+            for (auto h : hashes) {
+                if (buckets->Get(uint32_t(h)) == 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        
+    #else
         // Tests for membership of the data.
         // Returns true if the data is probably a member, false otherwise.
         bool Test(const std::vector<uint8_t>& data) const {
@@ -66,7 +103,7 @@ public:
 
             return true;
         }
-
+        
         // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
         StandardBloomFilter& Add(const std::vector<uint8_t>& data) {
@@ -83,7 +120,7 @@ public:
             this->count++;
             return *this;
         }
-
+        
         // Tests for membership of the data and adds it to the filter if it doesn't exist.
         // Returns true if the data was probably in the filter, false otherwise.
         bool TestAndAdd(const std::vector<uint8_t>& data) {
@@ -104,9 +141,10 @@ public:
             count++;
             return member;
         }
+    #endif
 
         ~StandardBloomFilter() {}
     };
-
+    
 
 }

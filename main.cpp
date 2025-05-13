@@ -1,7 +1,17 @@
 #include "csbf/index.h"
 #include "utils/fileProcess.hpp"
 #include "utils/Structures.hpp"
+#include "utils/logger/spdlog/include/spdlog/spdlog.h"
+#include "utils/logger.h"
 #include <unordered_set>
+
+// #define OBSOLETE
+// #define AtomicI
+// #define AtomicII
+// #define Icisn
+#define Bus
+#define Banking
+
 using namespace std;
 using namespace BloomFilterModels;
 
@@ -46,6 +56,20 @@ std::vector<std::string> mergeVectors(const Vectors&... vectors) {
     return mergedVector;
 }
 
+template <typename... Vectors>
+std::vector<shared_ptr<TestCase>> mergeTcs(const Vectors&... vectors) {  
+    std::vector<shared_ptr<TestCase>> mergedVector;
+
+    // Helper lambda function to insert all elements from a vector into mergedVector
+    auto insertAll = [&mergedVector](const auto& vector) {
+        mergedVector.insert(mergedVector.end(), vector.begin(), vector.end());
+    };
+
+    (insertAll(vectors), ...);
+
+    return mergedVector;
+}
+
 
 vector<string> readCSV(const string& filename)
 {
@@ -78,32 +102,36 @@ vector<string> set3;
 vector<string> set4;
 vector<string> set5;
 vector<Set> sets;
+vector<string> fullset;
 
 void import_Busticketing_data() {
-    set1 = readCSV("../data/blaclist/set1.csv"); //# 1 => values: 0 -> 200k
-    set2 = readCSV("../data/blaclist/set2.csv"); //# 2 => values: 200k -> 400k
-    set3 = readCSV("../data/blaclist/set3.csv"); //# 3 => values: 400k -> 600k
-    set4 = readCSV("../data/blaclist/set4.csv"); //# 4 => values: 600k -> 800k
-    set5 = readCSV("../data/blaclist/set5.csv"); //# 5 => values: 800k -> 1M
+    set1 = readCSV("data/dataset1.csv"); //# 1 => values: 0 -> 200k
+    set2 = readCSV("data/dataset2.csv"); //# 2 => values: 200k -> 400k
+    set3 = readCSV("data/dataset3.csv"); //# 3 => values: 400k -> 600k
+    set4 = readCSV("data/dataset4.csv"); //# 4 => values: 600k -> 800k
+    set5 = readCSV("data/dataset5.csv"); //# 5 => values: 800k -> 1M
     sets = { Set(set1, 1), Set(set2, 2), Set(set3, 3), Set(set4, 4), Set(set5, 5), };
+    fullset = mergeVectors(set1,set2,set3,set4,set5);
 }
 
 void import_Benchmarking_data() {
-    set1 = readCSV("../data/benchmarking/set1.csv"); //# 1 => values: 0 -> 200k
-    set2 = readCSV("../data/benchmarking/set2.csv"); //# 2 => values: 200k -> 400k
-    set3 = readCSV("../data/benchmarking/set3.csv"); //# 3 => values: 400k -> 600k
-    set4 = readCSV("../data/benchmarking/set4.csv"); //# 4 => values: 600k -> 800k
-    set5 = readCSV("../data/benchmarking/set5.csv"); //# 5 => values: 800k -> 1M
+    set1 = readCSV("data/benchmarking/set1.csv"); //# 1 => values: 0 -> 200k
+    set2 = readCSV("data/benchmarking/set2.csv"); //# 2 => values: 200k -> 400k
+    set3 = readCSV("data/benchmarking/set3.csv"); //# 3 => values: 400k -> 600k
+    set4 = readCSV("data/benchmarking/set4.csv"); //# 4 => values: 600k -> 800k
+    set5 = readCSV("data/benchmarking/set5.csv"); //# 5 => values: 800k -> 1M
     sets = { Set(set1, 1), Set(set2, 2), Set(set3, 3), Set(set4, 4), Set(set5, 5), };
+    fullset = mergeVectors(set1,set2,set3,set4,set5);
 }
 
 void import_Bankblacklisting_data() {
-    set1 = readCSV(set1_filename); //# 1 => values: 0 -> 200k
-    set2 = readCSV(set2_filename); //# 2 => values: 200k -> 400k
-    set3 = readCSV(set3_filename); //# 3 => values: 400k -> 600k
-    set4 = readCSV(set4_filename); //# 4 => values: 600k -> 800k
-    set5 = readCSV(set5_filename); //# 5 => values: 800k -> 1M
+    set1 = readCSV("data/blacklist/set1.csv"); //# 1 => values: 0 -> 200k
+    set2 = readCSV("data/blacklist/set2.csv"); //# 2 => values: 200k -> 400k
+    set3 = readCSV("data/blacklist/set3.csv"); //# 3 => values: 400k -> 600k
+    set4 = readCSV("data/blacklist/set4.csv"); //# 4 => values: 600k -> 800k
+    set5 = readCSV("data/blacklist/set5.csv"); //# 5 => values: 800k -> 1M
     sets = { Set(set1, 1), Set(set2, 2), Set(set3, 3), Set(set4, 4), Set(set5, 5), };
+    fullset = mergeVectors(set1,set2,set3,set4,set5);
 }
 
 vector<uint8_t> getAsciiBytes(const string& str) {
@@ -117,38 +145,41 @@ vector<uint8_t> getAsciiBytes(const string& str) {
     return bytes;
 }
 
-string getKeySet() {
-    string res="";
-    for (int i=0; i< sets.size(); i++) {
-        res += sets[i].isKey? to_string(sets[i].setCode)+",":"";
-    }
-    res.pop_back();
-    return res;
-}
+// Store Type Constructors as a List of Lambdas
+using TypeCreator = std::function<std::shared_ptr<AbstractFilter>()>;
 
-string getNonkeySet() {
-    string res="";
-    for (int i=0; i< sets.size(); i++) {
-        res += (!sets[i].isKey)? to_string(sets[i].setCode)+",":"";
+// Function to create a list of lists of instances
+std::vector<std::vector<std::shared_ptr<AbstractFilter>>> iterateTypes(
+    const std::vector<TypeCreator>& typeCreators, int instancesPerType) 
+{
+    std::vector<std::vector<std::shared_ptr<AbstractFilter>>> storage;
+    for (const auto& creator : typeCreators) {
+        std::vector<std::shared_ptr<AbstractFilter>> instanceList;
+        for (int i = 0; i < instancesPerType; ++i) {
+            instanceList.push_back(creator());
+        }
+        storage.push_back(std::move(instanceList));
     }
-    res.pop_back();
-    return res;
+
+    return storage; // Return list of lists
 }
 
 class Tester {
 public:
-    BloomFilterModels::AbstractFilter& bf;
-    vector<string> keys;
+    shared_ptr<BloomFilterModels::AbstractFilter> bf;
+    vector<shared_ptr<TestCase>> tcs; // list of test case for different configurations in one run
+    
+    vector<string> keys; // flattened key sets
+    vector<int> keysets; // indexes of every key_set in sets
 
-    vector<string> nonkeys;
-
-    vector<string> fullset = mergeVectors(set1,set2,set3,set4,set5);
+    vector<string> nonkeys; // flattened non key sets
     double binsearch_operatetime;
 
-    Tester(BloomFilterModels::AbstractFilter& bf) : bf(bf) {
-        cout << "Tester object created!" << endl;
+    Tester(std::shared_ptr<BloomFilterModels::AbstractFilter> bf) : bf(std::move(bf)) {
+        if (this->bf != nullptr) cout << "Tester object created!" << endl;
     }
 
+#ifdef OBSOLETE
     // keys: set1, set2, set3, set4 || nonkeys: set5
     void initTester800() {
         auto data = mergeVectors(set1, set2, set3, set4);
@@ -205,137 +236,178 @@ public:
         this->getEntrySize();
     }
 
+#endif
+
+    string getKeySet() {
+        string res="";
+        for (int i=0; i<sets.size(); i++) {
+            res += sets[i].isKey? to_string(i) + ",":"";
+        }
+        if (!res.empty()) res.pop_back();
+        return res;
+    }
+
+    string getNonkeySet() {
+        string res="";
+        for (int i=0; i<sets.size(); i++) {
+            res += sets[i].isKey == false ? to_string(i)+",":"";
+        }
+        if (!res.empty()) res.pop_back();
+        return res;
+    }
+    
     /*
-        `n`: is for number of sets need to be key set.
-        Change make to `keys`, `nonkeys`, `sets[].isKey`
+    `s`: is for number of sets need to be key set.
+    Change make to `keys`, `nonkeys`, `sets[].isKey`
     */
-    void initTesterwNKSet(long long n) {
-        vector<int> key_codes;
-        if (n > sets.size()) throw exception();
-        while (key_codes.size() < n) {
-            auto code = rand() % sets.size();
-            if (find(key_codes.begin(),key_codes.end(),code) != key_codes.end())
+    void initTesterwNKSet(int s) { 
+        if (sets.empty() || sets.size()==0) {
+            cout << "[ERROR] There's nothing in your data set.\n";
+            throw std::invalid_argument("Set is empty.");
+        }
+        if (s > sets.size()) {
+            cout << "[ERROR] Sets cannot handle so many instances of static filters.\n";
+            throw std::invalid_argument("Key set size is wrongly set.");
+        }
+        
+        // Setup once, maybe outside the function or as static
+        std::random_device rd;  // Non-deterministic random source (if available)
+        std::mt19937 gen(rd()); // Mersenne Twister PRNG
+        std::uniform_int_distribution<> dist(0, sets.size() - 1);
+        
+        while (keysets.size() < s) {
+            auto index = dist(gen);
+            if (find(keysets.begin(),keysets.end(),index) == keysets.end())
             {
-                key_codes.push_back(code);
-                sets[code].isKey = true;
+                keysets.push_back(index);
+                sets[index].isKey = true; 
             }
         }
+        cout << "[initTester] Done randomly selecting sets to be key sets.\n";
         for (auto set : sets) {
             if (set.isKey) {
                 binsearch_operatetime = 0;
                 auto start = chrono::high_resolution_clock::now();
                 for (auto item : set.data) keys.push_back(item);
+                sort(keys.begin(), keys.end());
                 auto end = chrono::high_resolution_clock::now(); 
                 binsearch_operatetime += chrono::duration<double>(end-start).count();
             } else {
                 for (auto item : set.data) nonkeys.push_back(item);
             }
         }
+        cout << "[initTester] Done adding "<< keys.size() <<" to db for BSearch.\n";
     }
 
+    void resetKeyAndSet() {
+        for (int i=0; i<sets.size(); i++) {sets[i].isKey = false;}
+        keys.clear(); nonkeys.clear(); keysets.clear();
+    }
+
+#ifdef OBSOLETE
     void getEntrySize() {
         cout << "Keys: " << keys.size() << endl;
         cout << "NonKeys: " << nonkeys.size() << endl;
     }
 
     string getConfig() {
-        return bf.getConfigure();
+        return bf->getConfigure();
     }
 
     // Return capacity of bf
     string Capacity() {
-        return to_string(bf.Capacity());
+        return to_string(bf->Capacity());
     }
 
     // Return number of hash functions
     uint32_t HashFunctionCount() {
-        return bf.K();
+        return bf->K();
+    }
+#endif
+    // Function: Insert and Sort
+    void BinarySearchWrite(vector<string> dataarr) {
+        
+        auto start = chrono::high_resolution_clock::now();
+        for (const auto& item : dataarr) {
+            keys.push_back(item);
+        }
+        auto end = chrono::high_resolution_clock::now();
+        
+        // * removing sorting cost because as we simulating db flow, new indexes will not cause sorting accrossthe index table but added in constant time with B-tree
+        // Sorting based on extracted ID
+        sort(keys.begin(), keys.end(), [](const string& a, const string& b) {
+            return extractID(a) < extractID(b);
+        });
+        binsearch_operatetime = chrono::duration<double>(end - start).count();
+
+        cout << "[INFO] BinarySearchWrite: Inserted " << dataarr.size() << " elements. Time: " << binsearch_operatetime << "s\n";
     }
 
-// Function: Insert and Sort
-void BinarySearchWrite(vector<string> dataarr) {
-    
-    auto start = chrono::high_resolution_clock::now();
-    for (const auto& item : dataarr) {
-        keys.push_back(item);
-    }
-    auto end = chrono::high_resolution_clock::now();
-    
-    // * removing sorting cost because as we simulating db flow, new indexes will not cause sorting accrossthe index table but added in constant time with B-tree
-    // Sorting based on extracted ID
-    sort(keys.begin(), keys.end(), [](const string& a, const string& b) {
-        return extractID(a) < extractID(b);
-    });
-    binsearch_operatetime = chrono::duration<double>(end - start).count();
+    // Function: Search and Log
+    chrono::duration<double> BinarySearchReadTime(vector<string> dataarr) {
+        auto start = chrono::high_resolution_clock::now();
+        
+        int founds = 0;
+        for (const auto& item : dataarr) {
+            bool found = binary_search(keys.begin(), keys.end(), item);
+            // bool found = binary_search(keys.begin(), keys.end(), item, [](const string& a, const string& b) {
+            //     return extractID(a) < extractID(b);
+            // });
+            founds += found;
+        }
 
-    cout << "[INFO] BinarySearchWrite: Inserted " << dataarr.size() << " elements. Time: " << binsearch_operatetime << "s\n";
-}
+        auto end = chrono::high_resolution_clock::now();
+        chrono::duration<double> duration = end - start;
 
-// Function: Search and Log
-chrono::duration<double> BinarySearchReadTime(vector<string> dataarr) {
-    auto start = chrono::high_resolution_clock::now();
-    
-    int founds = 0;
-    for (const auto& item : dataarr) {
-        bool found = binary_search(keys.begin(), keys.end(), item);
-        // bool found = binary_search(keys.begin(), keys.end(), item, [](const string& a, const string& b) {
-        //     return extractID(a) < extractID(b);
-        // });
-        founds += found;
+        cout << "[INFO] BinarySearchReadTime: Found = "<<founds<<"\n";
+
+        return duration;
     }
 
-    auto end = chrono::high_resolution_clock::now();
-    chrono::duration<double> duration = end - start;
+    // Function: Remove and Sort
+    void BinarySearchRemove(const vector<string>& subtractArray) {
+        
+        unordered_set<string> toRemove;  
+        auto start = chrono::high_resolution_clock::now();
+        for (const auto& item : subtractArray) {
+            toRemove.insert(extractID(item));  // Store IDs only
+        }
 
-    cout << "[INFO] BinarySearchReadTime: Found = "<<founds<<"\n";
+        auto it = remove_if(keys.begin(), keys.end(), [&toRemove](const string& key) {
+            return toRemove.count(extractID(key)) > 0;
+        });
 
-    return duration;
-}
+        keys.erase(it, keys.end());
+        auto end = chrono::high_resolution_clock::now();
 
-// Function: Remove and Sort
-void BinarySearchRemove(const vector<string>& subtractArray) {
-    
-    unordered_set<string> toRemove;  
-    auto start = chrono::high_resolution_clock::now();
-    for (const auto& item : subtractArray) {
-        toRemove.insert(extractID(item));  // Store IDs only
+        // Sorting after deletion
+        sort(keys.begin(), keys.end(), [](const string& a, const string& b) {
+            return extractID(a) < extractID(b);
+        });
+
+        binsearch_operatetime = chrono::duration<double>(end - start).count();
+
+        cout << "[INFO] BinarySearchRemove: Removed " << subtractArray.size() << " elements. Time: " << binsearch_operatetime << "s\n";
     }
 
-    auto it = remove_if(keys.begin(), keys.end(), [&toRemove](const string& key) {
-        return toRemove.count(extractID(key)) > 0;
-    });
-
-    keys.erase(it, keys.end());
-    auto end = chrono::high_resolution_clock::now();
-
-    // Sorting after deletion
-    sort(keys.begin(), keys.end(), [](const string& a, const string& b) {
-        return extractID(a) < extractID(b);
-    });
-
-    binsearch_operatetime = chrono::duration<double>(end - start).count();
-
-    cout << "[INFO] BinarySearchRemove: Removed " << subtractArray.size() << " elements. Time: " << binsearch_operatetime << "s\n";
-}
-
-/*
+#ifdef OBSOLETE
     // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
     // Reset the filter then insert
     chrono::duration<double> testAdding(vector<string> dataArray) {
         chrono::duration<double> total_elapsed(0);
         cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
 
-        if (bf.getFilterName() == "XorFilter") {
+        if (bf->getFilterName() == "XorFilter") {
             vector<vector<uint8_t>> data;
             for (auto d : dataArray) {
                 data.push_back(getAsciiBytes(d));
             }
             auto start = chrono::high_resolution_clock::now();
-            bf.Init(data);
+            bf->Init(data);
             auto end = chrono::high_resolution_clock::now();
             total_elapsed += end - start;
         } else {
-            if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
+            if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(bf.get())) {
                 auto start = chrono::high_resolution_clock::now();
                 sf->Init(
                     dataArray.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 
@@ -347,7 +419,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
                 auto start = chrono::high_resolution_clock::now();
-                bf.Add(dataBytes);
+                bf->Add(dataBytes);
                 auto end = chrono::high_resolution_clock::now();
                 total_elapsed += end - start;
                 // cout << "Adding: " << dataBytes.data() << endl;
@@ -358,7 +430,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
             for (auto data : dataArray) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
                 auto start = chrono::high_resolution_clock::now();
-                bf.TestAndAdd(dataBytes);
+                bf->TestAndAdd(dataBytes);
                 auto end = chrono::high_resolution_clock::now();
                 total_elapsed += end - start;
             }
@@ -366,61 +438,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         return total_elapsed;
         }
     }
-*/
-    Result testAdding_v1(vector<string> dataArray) {
-        Result res;
-        res.nof_collision = 0;
 
-        chrono::duration<double> total_elapsed(0);
-        cout << "Testing Adding of "<< dataArray.size() <<" keys!" << endl;
-
-        if (bf.getFilterName() == "XorFilter") {
-            vector<vector<uint8_t>> data;
-            for (auto d : dataArray) {
-                data.push_back(getAsciiBytes(d));
-            }
-            auto start = chrono::high_resolution_clock::now();
-            bf.Init(data);
-            auto end = chrono::high_resolution_clock::now();
-            total_elapsed += end - start;
-        }
-            if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(&bf)) {
-                auto start = chrono::high_resolution_clock::now();
-                sf->Init(
-                    dataArray.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 
-                    0, 0, algo, scheme
-                );
-                auto end = chrono::high_resolution_clock::now();
-                total_elapsed += end - start;
-            
-            for (auto data : dataArray) {
-                vector<uint8_t> dataBytes = getAsciiBytes(data);
-                res.nof_collision += bf.Test(dataBytes) ;
-                auto start = chrono::high_resolution_clock::now();
-                bf.Add(dataBytes);
-                auto end = chrono::high_resolution_clock::now();
-                total_elapsed += end - start;
-                // cout << "Adding: " << dataBytes.data() << endl;
-            }
-            
-            } else {
-        // * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
-            for (auto data : dataArray) {
-                vector<uint8_t> dataBytes = getAsciiBytes(data);
-                res.nof_collision += bf.Test(dataBytes) ;
-                auto start = chrono::high_resolution_clock::now();
-                bf.TestAndAdd(dataBytes);
-                auto end = chrono::high_resolution_clock::now();
-                total_elapsed += end - start;
-            }
-        }
-        
-        res.elapsed = total_elapsed;
-        res.testCount = dataArray.size();
-        return res;
-    }
-
-/*    
     chrono::duration<double> testInserting(vector<string> dataArray) {
         chrono::duration<double> total_elapsed(0);
         cout << "Testing Inserting of "<< dataArray.size() <<" keys!" << endl;
@@ -428,34 +446,12 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         for (auto data : dataArray) {
             vector<uint8_t> dataBytes = getAsciiBytes(data);
             auto start = chrono::high_resolution_clock::now();
-            bf.Add(dataBytes);
+            bf->Add(dataBytes);
             auto end = chrono::high_resolution_clock::now();
             total_elapsed += end - start;
             // cout << "Adding: " << dataBytes.data() << endl;
         }
         return total_elapsed;
-    }
-*/
-
-    Result testInserting_v1(vector<string> dataArray) {
-        Result res;
-        res.nof_collision = 0;
-        chrono::duration<double> total_elapsed(0);
-        cout << "Testing Inserting of "<< dataArray.size() <<" keys!" << endl;
-
-        for (auto data : dataArray) {
-            vector<uint8_t> dataBytes = getAsciiBytes(data);
-            res.nof_collision += bf.Test(dataBytes);
-            auto start = chrono::high_resolution_clock::now();
-            bf.Add(dataBytes);
-            auto end = chrono::high_resolution_clock::now();
-            total_elapsed += end - start;
-            // cout << "Adding: " << dataBytes.data() << endl;
-        }
-
-        res.testCount = dataArray.size();
-        res.elapsed = total_elapsed;
-        return res;
     }
 
     // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
@@ -467,14 +463,13 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         for (auto data : dataArray) {
             vector<uint8_t> dataBytes = getAsciiBytes(data);
             auto start = chrono::high_resolution_clock::now();
-            bf.Test(dataBytes);
+            bf->Test(dataBytes);
             auto end = chrono::high_resolution_clock::now();
             total_elapsed += end - start;
         }
         return total_elapsed;
     }
 
-/*
     // Input: vector of strings || Output: chrono::duration<double> as total time elapsed
     chrono::duration<double> testRemove(vector<string> dataArray) {
         chrono::duration<double> total_elapsed(0);
@@ -484,13 +479,89 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         for (auto data : dataArray) {
             vector<uint8_t> dataBytes = getAsciiBytes(data);
             auto start = chrono::high_resolution_clock::now();
-            bf.TestAndRemove(dataBytes);
+            bf->TestAndRemove(dataBytes);
             auto end = chrono::high_resolution_clock::now();
             total_elapsed += end - start;
         }
         return total_elapsed;
     }
-*/
+
+#endif 
+
+    Result testInserting_v1(vector<string> dataArray) {
+        Result res;
+        res.nof_collision = 0;
+        chrono::duration<double> total_elapsed(0);
+        cout << "Testing Inserting of "<< dataArray.size() <<" keys!" << endl;
+
+        for (auto data : dataArray) {
+            vector<uint8_t> dataBytes = getAsciiBytes(data);
+            res.nof_collision += bf->Test(dataBytes);
+            auto start = chrono::high_resolution_clock::now();
+            bf->Add(dataBytes);
+            auto end = chrono::high_resolution_clock::now();
+            total_elapsed += end - start;
+            // cout << "Adding: " << dataBytes.data() << endl;
+        }
+
+        res.testCount = dataArray.size();
+        res.elapsed = total_elapsed;
+        return res;
+    }
+
+    Result testAdding_v1(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME) {
+        Result res;
+        res.nof_collision = 0;
+
+        chrono::duration<double> total_elapsed(0);
+        cout << "Testing Adding of "<< keys.size() <<" keys!" << endl;
+
+        if (bf->getFilterName() == "XorFilter") {
+            vector<vector<uint8_t>> data;
+            for (auto d : keys) {
+                data.push_back(getAsciiBytes(d));
+            }
+            auto start = chrono::high_resolution_clock::now();
+            bf->Init(data);
+            auto end = chrono::high_resolution_clock::now();
+            total_elapsed += end - start;
+        }
+        if (BloomFilterModels::StaticFilter* sf = dynamic_cast<BloomFilterModels::StaticFilter*>(bf.get())) {
+            auto start = chrono::high_resolution_clock::now();
+            sf->Init(
+                keys.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 
+                0, 0, algo, scheme
+            );
+            auto end = chrono::high_resolution_clock::now();
+            total_elapsed += end - start;
+        
+        for (auto data : keys) {
+            vector<uint8_t> dataBytes = getAsciiBytes(data);
+            auto start = chrono::high_resolution_clock::now();
+            bool testBf = bf->Test(dataBytes);
+            if (!testBf) bf->Add(dataBytes);
+            auto end = chrono::high_resolution_clock::now();
+            res.nof_collision += testBf ;
+            total_elapsed += end - start;
+            // cout << "Adding: " << dataBytes.data() << endl;
+        }
+        
+        } else {
+    // * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
+        for (auto data : keys) {
+            vector<uint8_t> dataBytes = getAsciiBytes(data);
+            res.nof_collision += bf->Test(dataBytes) ;
+            auto start = chrono::high_resolution_clock::now();
+            bf->TestAndAdd(dataBytes);
+            auto end = chrono::high_resolution_clock::now();
+            total_elapsed += end - start;
+            }
+        }
+    
+        res.elapsed = total_elapsed;
+        res.testCount = keys.size();
+        return res;
+    }
 
     Result testRemove_v1(vector<string> dataArray) {
         Result res;
@@ -503,7 +574,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         for (auto data : dataArray) {
             vector<uint8_t> dataBytes = getAsciiBytes(data);
             auto start = chrono::high_resolution_clock::now();
-            res.nof_removable += bf.TestAndRemove(dataBytes);
+            res.nof_removable += bf->TestAndRemove(dataBytes);
             auto end = chrono::high_resolution_clock::now();
             total_elapsed += end - start;
         }
@@ -514,24 +585,50 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
     }
 
     Result TestFP(vector<string> dataArray, bool correctAns=true) {
+        cout << "[testFP] Starting to testFP on an array of " <<dataArray.size()<<" items.\n";
         Result result;
+        
         for (auto data : dataArray) {
-            
             auto start = chrono::high_resolution_clock::now();
+            
             vector<uint8_t> dataBytes = getAsciiBytes(data);
-            bool testResult = bf.Test(dataBytes);
+            bool testResult = bf->Test(dataBytes);  // Likely spot of the crash
+            
             auto end = chrono::high_resolution_clock::now();
             
-            if (testResult != correctAns) result.FP.push_back(data);
+            if (testResult != correctAns && testResult == true) result.FP.push_back(data);
+            if (testResult != correctAns && testResult == false) result.FN.push_back(data);
             result.elapsed += end - start;
         }
         result.finalize(dataArray.size());
+            
+        cout << "[testFP] Done testing .\n";
         return result;
     }
     
+
+#ifdef OBSOLETE
+
     void Testsuite200keys() {}
     void Testsuite400keys() {}
     void Testsuite800keys() {}
+    
+    string AAdd600k (
+        vector<string> skey1 = set1, 
+        vector<string> skey2 = set2, 
+        vector<string> skey3 = set3, 
+        vector<string> snkey1 = set4,
+        vector<string> snkey2 = set5
+    ) {}
+    
+    string AAdd400k (
+            vector<string> skey1 = set1, 
+            vector<string> skey2 = set2, 
+            vector<string> snkey1 = set3, 
+            vector<string> snkey2 = set4,
+            vector<string> snkey3 = set5
+    ) {}
+#endif
 
     void Std_testsuite(std::ofstream &perf, std::ofstream &conf)
     {
@@ -539,13 +636,13 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         TestCase tc;
         perf << tc.getHeader();
 
-        this->initTester600();
+        this->initTesterwNKSet(3);
         cout << endl;
 
         // # Test node 1
         // Insert set S -> time
         cout << "BEFORE ADDING" << endl;
-        auto res = testAdding_v1(keys);
+        auto res = testAdding_v1();
         cout << "AFTER ADDING" << endl;
         auto elapsed = res.elapsed.count();
         cout << "Adding 1 Set Elapsed time: " << elapsed << "s" << endl;
@@ -609,7 +706,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.test_time = time.count();
         tc.operation_time = binsearch_operatetime;
         tc.binsearch_time = bisearch_time;
-        tc.filterID = bf.getFilterCode();
+        tc.filterID = bf->getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString();
@@ -681,7 +778,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.test_time = time.count();
         tc.operation_time = binsearch_operatetime;
         tc.binsearch_time = bisearch_time;
-        tc.filterID = bf.getFilterCode();
+        tc.filterID = bf->getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString();
@@ -753,7 +850,7 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.test_time = time.count();
         tc.operation_time = binsearch_operatetime;
         tc.binsearch_time = bisearch_time;
-        tc.filterID = bf.getFilterCode();
+        tc.filterID = bf->getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString();
@@ -825,14 +922,14 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.test_time = time.count();
         tc.operation_time = binsearch_operatetime;
         tc.binsearch_time = bisearch_time;
-        tc.filterID = bf.getFilterCode();
+        tc.filterID = bf->getFilterCode();
 
         // Write performance data to the CSV
         perf << tc.toCSVString();
         tc.reset();
         // # END ReadTimeMENT
 
-        Configuration cf(&bf);
+        Configuration cf(bf.get());
         conf << cf.getHeader();
         cf.bs_memory = cf.bs_memory = keys.capacity() * (sizeof(std::string) + keys[0].capacity()) * 8;
         conf << cf.toCSVString();
@@ -845,36 +942,33 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         conf.close();
     }
 
-    void MergedFilterTestsuite(std::ofstream &perf, std::ofstream &conf)
+    void testOnlyTestsuite(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME)
     {
         // Write headers to CSV files
-        TestCase tc;
-        perf << tc.getHeader();
-
-        initTesterwNKSet(3);
-        cout << endl;
+        auto& tc = *tcs.back();
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration = now.time_since_epoch();
+        auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+        tc.id = millisec;
+        cout << "[INFO] Algorithm, Scheme and Clock all set up and ready.\n";
 
         // # Evaluate for FP and Latency
-        doTestAndLog(tc, perf);
- 
-        Configuration cf(&bf);
-        conf << cf.getHeader();
-        cf.bs_memory = cf.bs_memory = keys.capacity() * (sizeof(std::string) + keys[0].capacity()) * 8;
-        conf << cf.toCSVString();
+        doTestAndLog(tc);
+        cout << "[Testsuite] Done FP testing and collecting.\n";
+        
+        cout << "[Testsuite] Done exporting configuration.\n";
 
         // # Finalization
         cout << "Test done running!" << endl;
-
-        perf.close();        
-        conf.close();
     }
 
-    void doAddAndLog(TestCase &tc)
+    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME)
     {
         // # Test node 1
         // Insert set S -> time
+        auto& tc = *tcs.back();
         cout << "BEFORE ADDING" << endl;
-        auto res = testAdding_v1(keys);
+        auto res = testAdding_v1(algo, scheme);
         cout << "AFTER ADDING" << endl;
         auto elapsed = res.elapsed.count();
         cout << "Adding 1 Set Elapsed time: " << elapsed << "s" << endl;
@@ -883,20 +977,21 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.nof_operand = res.testCount;
     }
 
-    void doTestAndLog(TestCase &tc, std::ofstream &perf)
+    void doTestAndLog(TestCase &tc)
     {
         long long int fcount = 0;
         long long int testCount = 0;
         Result result_1;
         auto time = chrono::duration<double>(0);
 
-        for (auto set : sets)
+        for (int i=0; i<sets.size(); i++)
         {
+            auto set = sets[i]; cout << "[testFP] Testing on Set "<<i<<" isKey="<<set.isKey<<".\n";
             result_1 = TestFP(set.data, set.isKey);
             fcount += result_1.FP.size();
-            tc.f1 = result_1.FP.size();
+            tc.fp += result_1.FP.size();
             testCount += result_1.testCount;
-            time += result_1.elapsed;
+            time += result_1.elapsed; cout << "[testFP] Set "<<i<<" fp="<<result_1.FP.size()<<" fn="<<result_1.FN.size()<<".\n";
         }
 
         float accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
@@ -919,79 +1014,128 @@ void BinarySearchRemove(const vector<string>& subtractArray) {
         tc.test_time = time.count();
         tc.operation_time = binsearch_operatetime;
         tc.binsearch_time = bisearch_time;
-        tc.filterID = bf.getFilterCode();
-
-        // Write performance data to the CSV
-        perf << tc.toCSVString();
-        tc.reset();
+        tc.filterID = bf->getFilterCode();
     }
 
-    void ICISN_testsuite(string _algo, string _scheme) 
+    void BusEval(vector<string> hashFuncs, vector<string> hashSchemes) 
     {
-        algo = _algo;
-        scheme = _scheme;
-        auto now = std::chrono::high_resolution_clock::now();
-        auto duration = now.time_since_epoch();
-        auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-        // # Initialization
-        system("mkdir -p ./icisn-csv");
-        string postfix = algo + "__" + scheme + "__" + to_string(millisec);
-        string perfFilename = "./icisn-csv/icisn-result-" + postfix + ".csv";
-        string confFilename = "./icisn-csv/icisn-config-" + postfix + ".csv";
+        initTesterwNKSet(3);
+        cout << "Key Set is : "<< getKeySet() <<endl;
 
-        ofstream perf(perfFilename);
-        ofstream conf(confFilename);
-        if (!perf || !conf) {
-            cerr << "Failed to open output files" << endl;
-            return;
-        }
-
-        Std_testsuite(perf, conf);
-    }
-
-    int Blacklisting_testsuite(string _algo, string _scheme)
-    {
-        algo = _algo;
-        scheme = _scheme;
-        auto now = std::chrono::high_resolution_clock::now();
-        auto duration = now.time_since_epoch();
-        auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-        // # Initialization
+        for (auto hashFunc:hashFuncs) { for (auto hashScheme : hashSchemes) {
+            auto tc = make_shared<TestCase>(); tc->algo=hashFunc; tc->scheme=hashScheme; tc->filterName=bf->getFilterCode();
+            tc->bs_memory = keys.capacity() * (sizeof(std::string) + keys[0].capacity()) * 8;
+            tcs.push_back(tc);
+            
+            cout << "\n[BEGIN] Filter: " << bf->getFilterCode() << endl;
+            cout << "Configuration : "<< tc->algo <<"__"<< tc->scheme <<"__"<< tc->filterName << endl;
+            
+            auto now = std::chrono::high_resolution_clock::now();
+            auto duration = now.time_since_epoch();
+            auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(); tc->id = millisec;
+            
+            doAddAndLog(hashFunc, hashScheme);
+            tc->bf_memory=bf->Size();
+            doTestAndLog(*tc);
         
-        string postfix = algo + "__" + scheme + "__" + to_string(millisec);
-        string perfFilename = "./monitor/capstone-results/blacklisting/csv/blacklisting-result-" + postfix + ".csv";
-        string confFilename = "./monitor/capstone-results/blacklisting/csv/blacklisting-config-" + postfix + ".csv";
-        ofstream perf(perfFilename);
-        ofstream conf(confFilename);
-        if (!perf || !conf) {
-            cerr << "Failed to open output files" << endl;
-            return 1;
-        }
+            cout << "[Testsuite] Done exporting configuration.\n";
+        } }
 
-        MergedFilterTestsuite(perf, conf);
-        return 0;
+        resetKeyAndSet();
+        cout << "Key Size ="<< to_string(keys.size()) <<".\n";
+        cout << "[INFO] Evaluation and Resetting sets done.\n";
     }
-    
-/*
-    string AAdd600k (
-        vector<string> skey1 = set1, 
-        vector<string> skey2 = set2, 
-        vector<string> skey3 = set3, 
-        vector<string> snkey1 = set4,
-        vector<string> snkey2 = set5
-    )
-    
-    string AAdd400k (
-            vector<string> skey1 = set1, 
-            vector<string> skey2 = set2, 
-            vector<string> snkey1 = set3, 
-            vector<string> snkey2 = set4,
-            vector<string> snkey3 = set5
-    )
-*/
+
+    void BankEval(std::vector<TypeCreator> &typeList, int instancesPerType, vector<string> hashFuncs, vector<string> hashSchemes)
+    {
+        auto filterSets = iterateTypes(typeList, instancesPerType);
+        
+        // * number of children filter should be equal to that of number of key sets
+        initTesterwNKSet(instancesPerType);
+        cout << "Key Set is : "<< getKeySet() <<endl;
+        
+        for (auto hashFunc : hashFuncs) { for (auto hashScheme : hashSchemes) { for (auto filterSet : filterSets) {
+            // * each run is with a different combination of [StaticFilter x Algo x Scheme]
+            // * loop through the StaticFilters and initialize them
+            // * bank's data -> blacklisted accounts
+
+            // * initiating the testing filter if it is MCBF
+            bool isMCBF = bf->getFilterCode() == "MergCBF";
+            // cout << "[LOG] " << filterSets.size() <<endl;
+            if (isMCBF) bf->Init(keys.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 0, 0, hashFunc, hashScheme);
+            
+            double add_time = 0; double merg_time = 0;
+            for (int i = 0; i < instancesPerType; i++)
+            {
+                int key_index = keysets[i]; auto _filter = filterSet[i];
+                cout << "Adding Key set is "<< key_index <<endl;
+                
+                auto start_add = chrono::high_resolution_clock::now();
+                _filter->Init(isMCBF? keys.size():sets[key_index].data.size(),
+                    Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 0, 0, hashFunc, hashScheme);
+                
+                // * insert the child filter with key data
+                for (auto item : sets[key_index].data)
+                {
+                    // cout << "Adding "<< item <<" to "<<_filter->getFilterCode()<<endl;
+                    auto item_ = getAsciiBytes(item);
+                    _filter->Add(item_);
+                }
+
+                auto end_add = chrono::high_resolution_clock::now();
+                add_time += chrono::duration<double>(end_add-start_add).count();
+                
+                auto start_merg = chrono::high_resolution_clock::now();
+                // * add them to their parent
+                bf->AddFilter(_filter);
+                auto end_merg = chrono::high_resolution_clock::now();
+                merg_time += chrono::duration<double>(end_merg-start_merg).count();
+            }
+            auto tc = make_shared<TestCase>(); 
+            tcs.push_back(tc);
+            
+            cout << "\n[BEGIN] Filter: " << bf->getFilterCode() << endl;
+            cout << "Configuration : "<< hashFunc <<"__"<< hashScheme <<"__"<< bf->getFilterCode() << endl;
+            testOnlyTestsuite(hashFunc, hashScheme);
+            tc->algo=hashFunc; tc->scheme=hashScheme; tc->filterName=bf->getFilterCode(); tc->bf_memory=bf->Size(); tc->adding_time=add_time+merg_time; tc->merge_time=merg_time;
+            tc->bs_memory = keys.capacity() * (sizeof(std::string) + keys[0].capacity()) * 8;
+            // cout << "Config of filter: " << bf->getConfigure() << endl;
+            bf->Reset();
+            cout << "Testcase is DONE.\n";
+        } } }
+
+        resetKeyAndSet();
+        cout << "[INFO] Evaluation and Resetting sets done.\n";
+    }
 
     ~Tester() {}
 };
+
+
+void logResult(vector<shared_ptr<TestCase>> tcs)
+{
+    for (auto tc : tcs)
+    {
+        MonitorLogger::log({{"id", to_string(tc->id)},
+                            {"filter", tc->filterName},
+                            {"algo", tc->algo},
+                            {"scheme", tc->scheme},
+                            {"merge_time", to_string(tc->merge_time)},
+                            {"adding_time", to_string(tc->adding_time)},
+                            {"test_time", to_string(tc->test_time)},
+                            {"accuracy", to_string(tc->accuracy)},
+                            {"false_positives", to_string(tc->fp)},
+                            {"memory", to_string(tc->bf_memory)}});
+    }
+
+    MonitorLogger::log({{"id", to_string(std::time(nullptr))},
+                        {"filter", "Binary Search"},
+                        {"adding_time", to_string(tcs.back()->adding_time)},
+                        {"test_time", to_string(tcs.back()->test_time)},
+                        {"accuracy", to_string(1)},
+                        {"false_positives", to_string(0)},
+                        {"memory", to_string(tcs.back()->bs_memory)}});
+}
 
 void saveBitmap(const BloomFilterModels::AbstractFilter* filter)
 {
@@ -999,42 +1143,19 @@ void saveBitmap(const BloomFilterModels::AbstractFilter* filter)
     saveBitmapToCSV(filter);
     cout << "Bitmap saved!" << endl;
 }
-// Store Type Constructors as a List of Lambdas
-using TypeCreator = std::function<std::shared_ptr<StaticFilter>()>;
 
-// Function to create a list of lists of instances
-std::vector<std::vector<std::shared_ptr<StaticFilter>>> iterateTypes(
-    const std::vector<TypeCreator>& typeCreators, int instancesPerType) 
+int main(int argc, char *argv[])
 {
-    std::vector<std::vector<std::shared_ptr<StaticFilter>>> storage;
-    for (const auto& creator : typeCreators) {
-        std::vector<std::shared_ptr<StaticFilter>> instanceList;
-        for (int i = 0; i < instancesPerType; ++i) {
-            instanceList.push_back(creator());
-        }
-        storage.push_back(std::move(instanceList));
-    }
-
-    return storage; // Return list of lists
-}
-
-// #define AtomicI
-// #define AtomicII
-// #define Icisn
-#define Banking
-int main(int argc, char* argv[])
-{
-    string mode = "bank";
-    if (argc > 1) mode = argv[1];
-    if (mode == "bank") {
-        import_Bankblacklisting_data();
-    } else if (mode == "bench") {
-        import_Benchmarking_data();
-    } else if (mode == "bus") {
-        import_Busticketing_data();
-    } else {
-        import_Busticketing_data();
-    }
+    // string mode = "bank"; if (argc > 1) mode = argv[1];
+    // if (mode == "bank") {
+    //     import_Bankblacklisting_data();
+    // } else if (mode == "bench") {
+    //     import_Benchmarking_data();
+    // } else if (mode == "bus") {
+    //     import_Busticketing_data();
+    // } else {
+    //     import_Busticketing_data();
+    // }
 
 #ifdef AtomicI
     ofstream perf("csvs/stdsuite-result.csv");
@@ -1140,7 +1261,7 @@ int main(int argc, char* argv[])
             DeletableBloomFilter *dlbf = new DeletableBloomFilter();
             cout << "Filter: " << dlbf->getFilterCode() << endl;
             Tester tester(*dlbf);
-            tester.ICISN_testsuite(hashFunc, hashScheme);
+            tester.BusEval(hashFunc, hashScheme);
             cout << "Config of filter: " << dlbf->getConfigure() << endl;
             delete(dlbf);
         }
@@ -1148,58 +1269,102 @@ int main(int argc, char* argv[])
     
 #endif
     
-#ifdef Banking
-    
-    string hashFuncs[] = {
-        Hash32::ALGO_MURMUR3_32,
+#ifdef Bus
+{
+    import_Busticketing_data();
+
+    vector<string> hashFuncs = {
+        // Hash32::ALGO_MURMUR3_32,
         Hash32::ALGO_MURMUR3_128,
-        Hash32::ALGO_FNV1A,
-        Hash32::ALGO_SIPHASH,
+        // Hash32::ALGO_FNV1A,
+        // Hash32::ALGO_SIPHASH,
+        Hash32::ALGO_SHA256
     };
 
-    string hashSchemes[] = {
+    vector<string> hashSchemes = {
         // Hash32::SCHEME_SERIAL,
         Hash32::SCHEME_KIRSCH_MITZENMACHER,
         // Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
     };
     
-    std::vector<TypeCreator> typeList = {
+    int instancesPerType = 1;
+
+    vector<TypeCreator> typeList = {
+        []() { return std::make_shared<OneHashingBloomFilter>(); },
         []() { return std::make_shared<DeletableBloomFilter>(); },
         []() { return std::make_shared<StandardBloomFilter>(); },
-        []() { return std::make_shared<OneHashingBloomFilter>(); },
-        []() { return std::make_shared<CountingBloomFilter>(); }
+        []() { return std::make_shared<CountingBloomFilter>(); },
+        // []() { return std::make_shared<ScalableDeletableBloomFilter>(); },
+        // []() { return std::make_shared<ScalableStandardBloomFilter>(); },
+        []() { return std::make_shared<CountingScalableBloomFilter>(); },
+        // []() { return std::make_shared<DynamicBloomFilter>(); },
+        // []() { return std::make_shared<DynamicStdCountingBloomFilter>(); }
     };
 
-    // Configurable number of instances of static filters
-    int instancesPerType = 5;  
+    vector<shared_ptr<TestCase>> tcs;
+    auto filterSets = iterateTypes(typeList, 1);
+    
+    // Loop over configs
+    for (auto filterSet : filterSets) { for (auto filter : filterSet) {
+        Tester tester(filter);  // assuming Tester takes reference to BaseCompositeFilter
+        tester.BusEval(hashFuncs, hashSchemes);
+        tcs = mergeTcs(tcs, tester.tcs);
+    } }
 
-    auto filterSets = iterateTypes(typeList, instancesPerType);
+    logResult(tcs);
+}
+#endif
 
-    for (auto hashFunc : hashFuncs) {
-        for (auto hashScheme : hashSchemes) {
-        for (auto filterSet : filterSets) {
-        // # each run is with a different combination of [StaticFilter x Algo x Scheme]
-        // : loop through the StaticFilters and initialize them
-        // : bank's data -> blacklisted accounts
-            auto filter = new BloomFilterModels::MergeableFilter({});
-            for (int i=0; i<instancesPerType; i++) {
-                auto _filter = filterSet[i];
-                _filter->Init(sets[i].data.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 0, 0, algo, scheme);
-                for (auto item : sets[i].data) {
-                    auto item_ = getAsciiBytes(item);
-                    _filter->Add(item_);
-                }
-                filter->AddFilter(_filter);
-            }
-            cout << "Filter: " << filter->getFilterCode() << endl;
-            Tester tester(*filter);
-            tester.Blacklisting_testsuite(hashFunc, hashScheme);
-            cout << "Config of filter: " << filter->getConfigure() << endl;
-            } 
+#ifdef Banking
+{
+    import_Bankblacklisting_data();
+
+    vector<string> hashFuncs = {
+        // Hash32::ALGO_MURMUR3_32,
+        Hash32::ALGO_MURMUR3_128,
+        Hash32::ALGO_FNV1A,
+        Hash32::ALGO_SIPHASH,
+        Hash32::ALGO_JENKINS
+    };
+
+    vector<string> hashSchemes = {
+        // Hash32::SCHEME_SERIAL,
+        Hash32::SCHEME_KIRSCH_MITZENMACHER,
+        // Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
+    };
+    
+    int instancesPerType = 3;
+
+    std::vector<std::pair<std::vector<TypeCreator>, std::shared_ptr<BloomFilterModels::AbstractFilter>>> configs = {
+        {
+            {
+                []() { return std::make_shared<DeletableBloomFilter>(); },
+                []() { return std::make_shared<StandardBloomFilter>(); },
+                []() { return std::make_shared<CountingBloomFilter>(); },
+                []() { return std::make_shared<OneHashingBloomFilter>(); }
+            },
+            std::make_shared<BloomFilterModels::MergeableFilter>()
         }
-    }
-    filterSets.clear();
+        ,
+        {
+            {
+                []() { return std::make_shared<MergeableCountingBloomFilter>(); }
+            },
+            std::make_shared<BloomFilterModels::MergeableCountingBloomFilter>()
+        }
+    };
 
+    vector<shared_ptr<TestCase>> tcs;
+    
+    // Loop over configs
+    for (auto &[typeList, filter] : configs) {
+        Tester tester(filter);  // assuming Tester takes reference to BaseCompositeFilter
+        tester.BankEval(typeList, instancesPerType, hashFuncs, hashSchemes);
+        tcs = mergeTcs(tcs, tester.tcs);
+    }
+
+    logResult(tcs);
+}
 #endif
 
 #ifdef default
@@ -1224,7 +1389,7 @@ int main(int argc, char* argv[])
             CountingBloomFilter *scbf = new CountingBloomFilter();
             cout << "Filter: " << scbf->getFilterCode() << endl;
             Tester tester(*scbf);
-            tester.ICISN_testsuite(hashFunc, hashScheme);
+            tester.BusEval(hashFunc, hashScheme);
 
             delete(scbf);
         }

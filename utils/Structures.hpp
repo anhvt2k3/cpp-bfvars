@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iomanip>
 #include <algorithm>
+#include <random>
 
 using namespace std;
 
@@ -17,6 +18,7 @@ class Result
         long long int nof_removable = 0;
         chrono::duration<double> elapsed;
         vector<string> FP;
+        vector<string> FN;
         float accuracy = 0;
         Result() {}
         void setFP(vector<string> FP) {
@@ -27,15 +29,17 @@ class Result
         {
             testCount = size;
             if (size == 0) this->accuracy = 1.0f;
-            else this->accuracy = (testCount - FP.size()) / testCount;
+            else this->accuracy = (testCount - FP.size() - FN.size()) / testCount;
         }
         ~Result() {}
 };
 
 struct Set
 {
+private:
+    int setCode; // deprecated and should not be used explicitly
+public:
     string setName = "set<>";
-    int setCode;
     vector<string> data;
     bool isKey = 0;
 

@@ -15,13 +15,16 @@ public:
     @   - Not only Initial Setting up, after Set-up insertion should also be allowed
     @   - Membership testing for 1 element accross the BFs
 */
+    MergeableFilter() {
+        cout << "Mergeable Filter created without params.\n";
+    }
 
     string getFilterCode() const {
-        return "MergedBF."+filters.front()->getFilterCode();
+        return (!filters.empty())? "MergedFilter."+filters.front()->getFilterCode():"MergedFilter";
     }
 
     string getFilterName() const {
-        return "MergeableBloomFilterOf"+filters.front()->getFilterCode();
+        return (!filters.empty())? "Mergeable Filter Of "+filters.front()->getFilterName():"Mergeable Filter";
     }
 
     std::string getConfigure() {
@@ -56,8 +59,10 @@ public:
 
     // Returns the current filter size.
     uint32_t Size() const {
-        uint32_t size = 0;
+        long long size = 0;
+        cout << "MF: Getting size of "<<filters.size()<<".\n";
         for (const auto& filter : filters) {
+            cout << "MF: Getting size of "<<filter->getFilterCode()<<" "<<filter->Size()<<".\n";
             size += filter->Size();
         }
         return size;
@@ -76,21 +81,17 @@ public:
         return count;
     }
 
-    int AddFilter(shared_ptr<StaticFilter> filter) {
+    int AddFilter(shared_ptr<AbstractFilter> filter) {
         filters.push_back(filter);
         return 0;
     }
 
     bool Test(const vector<uint8_t>& data) const {
-        for (const auto& filter : filters)
-        {
+        for (const auto& filter : filters) {
             // Check for membership in each filter
-            for (const auto& filter : filters) {
-                if (filter->Test(data)) {
+            if (filter->Test(data) == true) {
                     return true;
-                }
             }
-            return false;
         }
         return false;
     }

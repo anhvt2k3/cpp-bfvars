@@ -4,6 +4,8 @@
 #include "../utils/primes/primes.h"
 
 using namespace std;
+#define Hashgen
+
 namespace BloomFilterModels {
 
     class PartitionModule {
@@ -66,16 +68,22 @@ public:
 
         vector<int> indexes;
 public:
-        OneHashingBloomFilter() {}
-        OneHashingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0) 
-            : StaticFilter(n, b, fpRate, k, countExist)  // Call the base class constructor directly
-        {
-            this->indexes = PartitionModule().determinePartitionSizes(this->m, this->k);
+        OneHashingBloomFilter() {
+            cout << "OHBF without params.\n";
         }
-
-        void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0)  {
-            StaticFilter::Init(n, 1, fpRate, k, countExist);
+        OneHashingBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0, string algorithm = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME) 
+            : StaticFilter(n, b, fpRate, k, countExist, algorithm, scheme)  // Call the base class constructor directly
+        {
+            this->k *= 1.5;
             this->indexes = PartitionModule().determinePartitionSizes(this->m, this->k);
+            this->hashGen->setK(1);
+        }
+        // Intended to be used if previously no-params constructor is used.
+        void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0, string algorithm = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME)  {
+            StaticFilter::Init(n, 1, fpRate, k, countExist, algorithm, scheme);
+            this->k *= 1.5;
+            this->indexes = PartitionModule().determinePartitionSizes(this->m, this->k);
+            this->hashGen->setK(1);
         }
 
         string getFilterName() const {
@@ -110,7 +118,41 @@ public:
         double FPrate() const {
             return fpRate;
         }
+    #ifdef Hashgen
+    // Tests for membership of the data.
+    // Returns true if the data is probably a member, false otherwise.
+    bool Test(const std::vector<uint8_t>& data) const {
+        vector<uint32_t> hashes = hashGen->Execute(data, algorithm, scheme);
 
+        // Check if all hash function indices are set in the bucket array
+        for (uint32_t i = 0; i < k; ++i) {
+            int mfi = indexes[i+1] - indexes[i];
+            uint32_t indx = uint32_t(hashes[0] % mfi + indexes[i]);
+            if (buckets->Get(indx) == 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Adds the data to the filter->
+    // Returns a reference to the filter for chaining.
+    OneHashingBloomFilter& Add(const std::vector<uint8_t>& data) {
+        vector<uint32_t> hashes = hashGen->Execute(data, algorithm, scheme);
+        
+        // Set the K bits in the bucket array
+        for (uint32_t i = 0; i < k; ++i) {
+            int mfi = indexes[i+1] - indexes[i];
+            uint32_t indx = uint32_t(hashes[0] % mfi + indexes[i]);
+            buckets->Set(indx, 1);
+        }
+
+        this->count++;
+        return *this;
+    }
+    #else
         // Tests for membership of the data.
         // Returns true if the data is probably a member, false otherwise.
         bool Test(const std::vector<uint8_t>& data) const {
@@ -167,7 +209,7 @@ public:
             count++;
             return member;
         }
-
+    #endif
         ~OneHashingBloomFilter() {}
     };
 

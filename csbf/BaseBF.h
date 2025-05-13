@@ -37,10 +37,10 @@ namespace BloomFilterModels
                         // # Specialized methods
         uint32_t BucketMaxValue() const { return 0; };
         uint32_t BucketCount() const { return 0; };
-        string getHashAlgo() const { return "Method is not implemented!"; };
-        string getHashScheme() const { return "Method is not implemented!"; };
+        string getHashAlgo() const { return algorithm; };
+        string getHashScheme() const { return scheme; };
 
-        AbstractFilter &Add(const std::vector<uint8_t> &data) { return *this; }
+        virtual AbstractFilter &Add(const std::vector<uint8_t> &data) { return *this; }
 
         virtual void Init(
             uint32_t n, // estimated total size of data
@@ -76,6 +76,13 @@ namespace BloomFilterModels
             cout << "Unsupported method: TestAndAdd" << endl;
             return false;
         };
+        virtual int AddFilter(shared_ptr<AbstractFilter> target)
+        {
+            cout << "Unsupported method: AddFilter" << endl;
+            return 0;
+        }
+        virtual AbstractFilter* Duplicate(uint32_t n, double fpRate, int k) 
+        { cout<<"Unsupported method: Duplicate"<<endl; return nullptr; };
         virtual AbstractFilter &Reset() { return *this; };
     };
 
@@ -102,8 +109,37 @@ namespace BloomFilterModels
             this->fpRate = fpRate;
             this->algorithm = algorithm;
             this->scheme = scheme;
-            this->hashGen = new Hash32::HashGen{k, m};
+            this->hashGen = new Hash32::HashGen{this->k, this->m};
+            cout << "[LOG] A Static filter created with m="<<this->m<<" k="<<this->k<<".\n";
         }
+        void Init_(
+            uint32_t n,
+            double fpRate = Defaults::FALSE_POSITIVE_RATE,
+            uint32_t k = 0,
+            uint8_t b = Defaults::BUCKET_SIZE,
+            uint32_t countExist = 0,
+            string algorithm = Defaults::HASH_ALGORITHM,
+            string scheme = Defaults::HASH_SCHEME)
+        {
+            //@ automatically destroy the last buckets and assign a new one
+            this->m = BloomFilterApp::Utils::OptimalMCounting(n, fpRate);
+            this->k = k == 0 ? BloomFilterApp::Utils::OptimalKCounting(fpRate) : k;
+            this->buckets = make_unique<Buckets>(this->m, b);
+            this->count = countExist;
+            this->maxCapacity = n;
+            this->fpRate = fpRate;
+            this->algorithm = algorithm;
+            this->scheme = scheme;
+            this->hashGen = new Hash32::HashGen{this->k, this->m};
+            cout << "[LOG] A Static filter created with m="<<this->m<<" k="<<this->k<<".\n";
+        }
+
+        // :TODO
+        StaticFilter* Duplicate(uint32_t capacity, double fpRate, int k) {
+            // : duplicate itself with some minor changes as input parameters if needed
+            return nullptr;
+        }
+
         uint32_t BucketSize() const
         {
             return buckets->bucketSize;
@@ -166,10 +202,15 @@ namespace BloomFilterModels
     class DynamicFilter : public AbstractFilter
     {
     public:
-        vector<shared_ptr<StaticFilter>> filters;
+        vector<shared_ptr<AbstractFilter>> filters;
 
         DynamicFilter() {}
-        DynamicFilter(vector<shared_ptr<StaticFilter>> filter) : filters(filter) {}
+        DynamicFilter(vector<shared_ptr<AbstractFilter>> filter) : filters(filter) {}
+
+        int AddFilter(shared_ptr<AbstractFilter> filter) {
+            cout << "[INFO] This method is not implemented.\n";
+            return 0;
+        }
 
         uint32_t BucketSize() const
         {

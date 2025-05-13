@@ -1,14 +1,61 @@
 {
   "version": "0.2.0",
   "configurations": [
+
+
+
+    
+    
+    
+    {
+      "name": "No-build GDB on main.exe",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "D:/Desktop/csbf/main.exe",
+      "args": ["bank"],
+      "stopAtEntry": false,
+      "cwd": "D:/Desktop/csbf",
+      "environment": [],
+      "externalConsole": true,
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",  // Adjust if gdb.exe is in a custom location
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for GDB",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    },    
+
+    {
+      "name": "Launch GDB on main.exe",
+      "preLaunchTask": "clean and build",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "D:/Desktop/csbf/main.exe",
+      "args": ["bank"],
+      "stopAtEntry": false,
+      "cwd": "D:/Desktop/csbf",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",  // Adjust if gdb.exe is in a custom location
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for GDB",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+    },
     
     {
       "name": "C/C++ Runner: Debug Session",
       "type": "cppdbg",
       "request": "launch",
       "args": [
-        "-lssl",
-        "-lcrypto"
+        "bank"
       ],
       "stopAtEntry": false,
       "externalConsole": true,

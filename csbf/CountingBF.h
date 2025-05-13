@@ -14,15 +14,15 @@ namespace BloomFilterModels
         }
         CountingBloomFilter(
             uint32_t n,
-            uint8_t b,
-            double fpRate,
+            uint8_t b = Defaults::CBF_BUCKET_SIZE,
+            double fpRate = Defaults::FALSE_POSITIVE_RATE,
             uint32_t k = 0,
             uint32_t countExist = 0,
             string algorithm = Defaults::HASH_ALGORITHM,
             string scheme = Defaults::HASH_SCHEME)
             : StaticFilter(
                   n,
-                  Defaults::CBF_BUCKET_SIZE,
+                  b,
                   fpRate,
                   k,
                   countExist,
@@ -30,8 +30,9 @@ namespace BloomFilterModels
                   scheme) // Call the base class constructor directly
         {
             cout << "CBF constructor with params" << endl;
+            cout << "CBF created with k="<<k<< "n="<<maxCapacity<<" fpRate="<<fpRate<<".\n";
         }
-
+        
         void Init(
             uint32_t n,
             uint8_t b = Defaults::CBF_BUCKET_SIZE,
@@ -42,6 +43,7 @@ namespace BloomFilterModels
             string scheme = Defaults::HASH_SCHEME)
         {
             StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, k, countExist, algorithm, scheme);
+            cout << "CBF created with k="<<k<< "n="<<maxCapacity<<" fpRate="<<fpRate<<".\n";
         }
 
         string getFilterName() const
@@ -63,7 +65,7 @@ namespace BloomFilterModels
         // Returns the filter capacity
         uint32_t Size() const
         {
-            return m;
+            return m * buckets->bucketSize;
         }
 
         // Returns the number of hash functions
