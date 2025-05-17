@@ -82,6 +82,7 @@ public:
 
   // Set the value of a bucket
   Buckets& Set(uint32_t bucket, int value, string type = "MaxValue") {
+    // @ type (string) is to set a default value for the Counter of Counting Bloom filter
     if (value > this->Max) {
       if (type == "MaxValue") {
         value = this->Max;
@@ -113,7 +114,7 @@ public:
     uint32_t byteIndex = offset / 8;
     int byteOffset = (int)(offset % 8);
     if ((byteOffset + length) > 8) {
-      int rem = 8 - byteOffset;
+      int rem = 8 - byteOffset; // `rem` for remain
       return GetBits(offset, rem) | (GetBits((uint32_t)(offset + rem), length - rem) << rem);
     }
 

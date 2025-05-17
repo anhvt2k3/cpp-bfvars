@@ -1017,9 +1017,9 @@ public:
         tc.filterID = bf->getFilterCode();
     }
 
-    void BusEval(vector<string> hashFuncs, vector<string> hashSchemes) 
+    void BusEval(vector<string> hashFuncs, vector<string> hashSchemes, int sets4test = 3) 
     {
-        initTesterwNKSet(3);
+        initTesterwNKSet(sets4test);
         cout << "Key Set is : "<< getKeySet() <<endl;
 
         for (auto hashFunc:hashFuncs) { for (auto hashScheme : hashSchemes) {
