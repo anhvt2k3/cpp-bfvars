@@ -59,6 +59,8 @@ public:
 class UniversalSet {
 private:
     vector<string> elements; // Universal set of strings
+    vector<string> keys;     // Stores keys
+    vector<string> nonKeys;  // Stores non-keys
     size_t keyStart;        // Index of first key
     size_t keyEnd;          // Index of last key
     bool isWithdrawn;       // Flag to check if withDraw was called
@@ -66,48 +68,50 @@ private:
 public:
     // Constructor
     UniversalSet(const vector<string>& input) 
-        : elements(input), keyStart(0), keyEnd(0), isWithdrawn(false) {}
+        : elements(input), keys(), nonKeys(), 
+          keyStart(0), keyEnd(0), isWithdrawn(false) {}
 
-    // Mark first element as start of keys and x-th as end
-    vector<string> withDraw(size_t x) {
+    // Mark first element as start of keys and x-th as end, update keys and nonKeys
+    void withDraw(size_t x) {
         if (x > elements.size() || x == 0) {
             throw out_of_range("Invalid index for key boundary");
         }
         keyStart = 0;              // First element is start of keys
         keyEnd = x - 1;            // x-th element (1-based) is end of keys
         isWithdrawn = true;
-        return vector<string>(elements.begin() + keyStart, 
-                            elements.begin() + keyEnd + 1);
+
+        // Update keys
+        keys.clear();
+        keys.assign(elements.begin() + keyStart, elements.begin() + keyEnd + 1);
+
+        // Update nonKeys
+        nonKeys.clear();
+        nonKeys.insert(nonKeys.end(), elements.begin(), elements.begin() + keyStart);
+        nonKeys.insert(nonKeys.end(), elements.begin() + keyEnd + 1, elements.end());
     }
 
-    // Return keys (from keyStart to keyEnd)
+    // Return keys
     vector<string> getKeys() const {
         if (!isWithdrawn) {
             throw logic_error("withDraw must be called before getting keys");
         }
-        return vector<string>(elements.begin() + keyStart, 
-                            elements.begin() + keyEnd + 1);
+        return keys;
     }
 
-    // Return non-keys (before keyStart and after keyEnd)
+    // Return non-keys
     vector<string> getNonKeys() const {
         if (!isWithdrawn) {
             throw logic_error("withDraw must be called before getting non-keys");
         }
-        vector<string> nonKeys;
-        // Add elements before keyStart
-        nonKeys.insert(nonKeys.end(), elements.begin(), 
-                      elements.begin() + keyStart);
-        // Add elements after keyEnd
-        nonKeys.insert(nonKeys.end(), elements.begin() + keyEnd + 1, 
-                      elements.end());
         return nonKeys;
     }
 
-    // Reset key boundaries and withdrawal state
+    // Reset key boundaries and clear keys/nonKeys
     void reset() {
         keyStart = 0;
         keyEnd = 0;
         isWithdrawn = false;
+        keys.clear();
+        nonKeys.clear();
     }
 };

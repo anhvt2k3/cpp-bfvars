@@ -899,7 +899,7 @@ public:
         chrono::duration<double> total_elapsed(0);
         auto keyBatches = partitionKeys(keys, step_size);
 
-        for (const auto& batch : keyBatches) 
+        for (int stepping=0; stepping<step_num; stepping++) 
         {
             //* See if it is a StaticFilter
             if (auto sf = dynamic_cast<BloomFilterModels::StaticFilter*>(bf.get())) {
