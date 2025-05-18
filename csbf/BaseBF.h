@@ -89,7 +89,7 @@ namespace BloomFilterModels
     // ! Filter parent class
     class StaticFilter : public AbstractFilter
     {
-    protected:
+    bool isInitted = false;
     public:
         void Init(
             uint32_t n,
@@ -101,6 +101,7 @@ namespace BloomFilterModels
             string scheme = Defaults::HASH_SCHEME) override
         {
             //@ automatically destroy the last buckets and assign a new one
+            this->isInitted = true;
             this->m = BloomFilterApp::Utils::OptimalMCounting(n, fpRate);
             this->k = k == 0 ? BloomFilterApp::Utils::OptimalKCounting(fpRate) : k;
             this->buckets = make_unique<Buckets>(this->m, b);
@@ -122,6 +123,7 @@ namespace BloomFilterModels
             string scheme = Defaults::HASH_SCHEME)
         {
             //@ automatically destroy the last buckets and assign a new one
+            this->isInitted = true;
             this->m = BloomFilterApp::Utils::OptimalMCounting(n, fpRate);
             this->k = k == 0 ? BloomFilterApp::Utils::OptimalKCounting(fpRate) : k;
             this->buckets = make_unique<Buckets>(this->m, b);
@@ -138,6 +140,10 @@ namespace BloomFilterModels
         StaticFilter* Duplicate(uint32_t capacity, double fpRate, int k) {
             // : duplicate itself with some minor changes as input parameters if needed
             return nullptr;
+        }
+
+        bool getInitStatus() {
+            return this->isInitted;
         }
 
         uint32_t BucketSize() const

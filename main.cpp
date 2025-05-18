@@ -1,8 +1,5 @@
 #include "csbf/index.h"
-#include "utils/fileProcess.hpp"
-#include "utils/Structures.hpp"
-#include "utils/logger/spdlog/include/spdlog/spdlog.h"
-#include "utils/logger.h"
+#include "utils/main_utils.hpp"
 #include <unordered_set>
 
 // #define OBSOLETE
@@ -22,7 +19,6 @@ string set3_filename = "./data/dataset3.csv"; //# 3 => values: 400k -> 600k
 string set4_filename = "./data/dataset4.csv"; //# 4 => values: 600k -> 800k
 string set5_filename = "./data/dataset5.csv"; //# 5 => values: 800k -> 1M
 
-
 string algo = Defaults::HASH_ALGORITHM;
 string scheme = Defaults::HASH_SCHEME;
 
@@ -34,66 +30,6 @@ string getVarName(string str) {
     if (str == "./data/dataset4.csv") return "set4";
     if (str == "./data/dataset5.csv") return "set5";
     return "Unknown";
-}
-
-void printVector(vector<string> data) {
-    for (auto d : data) {
-        cout << d << endl;
-    }
-}
-
-template <typename... Vectors>
-std::vector<std::string> mergeVectors(const Vectors&... vectors) {  
-    std::vector<std::string> mergedVector;
-
-    // Helper lambda function to insert all elements from a vector into mergedVector
-    auto insertAll = [&mergedVector](const auto& vector) {
-        mergedVector.insert(mergedVector.end(), vector.begin(), vector.end());
-    };
-
-    (insertAll(vectors), ...);
-
-    return mergedVector;
-}
-
-template <typename... Vectors>
-std::vector<shared_ptr<TestCase>> mergeTcs(const Vectors&... vectors) {  
-    std::vector<shared_ptr<TestCase>> mergedVector;
-
-    // Helper lambda function to insert all elements from a vector into mergedVector
-    auto insertAll = [&mergedVector](const auto& vector) {
-        mergedVector.insert(mergedVector.end(), vector.begin(), vector.end());
-    };
-
-    (insertAll(vectors), ...);
-
-    return mergedVector;
-}
-
-
-vector<string> readCSV(const string& filename)
-{
-    vector<string> data;
-    ifstream file(filename);
-    string line;
-    
-    while (getline(file, line))
-    {
-        stringstream ss(line);
-        string cell;
-
-        while (getline(ss, cell, ','))
-        {
-            data.push_back(cell);
-        }
-    }
-    
-    return data;
-}
-
-// Helper function: Extracts the ID (first part of the string)
-string extractID(const string& s) {
-    return s.substr(0, s.find(' '));
 }
 
 vector<string> set1;
@@ -132,17 +68,6 @@ void import_Bankblacklisting_data() {
     set5 = readCSV("data/blacklist/set5.csv"); //# 5 => values: 800k -> 1M
     sets = { Set(set1, 1), Set(set2, 2), Set(set3, 3), Set(set4, 4), Set(set5, 5), };
     fullset = mergeVectors(set1,set2,set3,set4,set5);
-}
-
-vector<uint8_t> getAsciiBytes(const string& str) {
-    vector<uint8_t> bytes(str.begin(), str.end());
-    // cout << "String: " << str << endl;
-    // cout << "Bytes:" << bytes.size() << endl;
-    // for (uint8_t byte : bytes) 
-        //     cout << static_cast<int>(byte) << ' ';
-    // }
-    // cout << endl;
-    return bytes;
 }
 
 // Store Type Constructors as a List of Lambdas
@@ -962,17 +887,57 @@ public:
         cout << "Test done running!" << endl;
     }
 
-    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME)
+    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME, uint32_t steps = 500)
     {
         // # Test node 1
         // Insert set S -> time
         auto& tc = *tcs.back();
-        cout << "BEFORE ADDING" << endl;
-        auto res = testAdding_v1(algo, scheme);
-        cout << "AFTER ADDING" << endl;
-        auto elapsed = res.elapsed.count();
-        cout << "Adding 1 Set Elapsed time: " << elapsed << "s" << endl;
-        tc.adding_time = elapsed;
+        
+        UniversalSet unitset(fullset);
+        Result res;
+        res.nof_collision = 0;
+        chrono::duration<double> total_elapsed(0);
+        auto keyBatches = partitionKeys(keys, steps);
+
+        for (const auto& batch : keyBatches) 
+        {
+            //* See if it is a StaticFilter
+            if (auto sf = dynamic_cast<BloomFilterModels::StaticFilter*>(bf.get())) {
+                if ( sf && !sf->getInitStatus() ) { // * Init if haven't
+                    auto start = chrono::high_resolution_clock::now();
+                    sf->Init(
+                        keys.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 
+                        0, 0, algo, scheme
+                    );
+                    auto end = chrono::high_resolution_clock::now();
+                    total_elapsed += end - start;
+                }
+            
+            for (auto data : batch) {
+                vector<uint8_t> dataBytes = getAsciiBytes(data);
+                bool testBf = bf->Test(dataBytes);
+                auto start = chrono::high_resolution_clock::now();
+                if (!testBf) bf->Add(dataBytes);
+                auto end = chrono::high_resolution_clock::now();
+                res.nof_collision += testBf ;
+                total_elapsed += end - start;
+                // cout << "Adding: " << dataBytes.data() << endl;
+            }
+            
+            } else {
+        // * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
+            for (auto data : batch) {
+                vector<uint8_t> dataBytes = getAsciiBytes(data);
+                res.nof_collision += bf->Test(dataBytes) ;
+                auto start = chrono::high_resolution_clock::now();
+                bf->TestAndAdd(dataBytes);
+                auto end = chrono::high_resolution_clock::now();
+                total_elapsed += end - start;
+                }
+            }
+        }
+
+        tc.adding_time = total_elapsed.count() / keys.size();
         tc.nof_collision = res.nof_collision;
         tc.nof_operand = res.testCount;
     }
