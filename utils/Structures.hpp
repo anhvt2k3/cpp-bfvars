@@ -71,13 +71,22 @@ public:
         : elements(input), keys(), nonKeys(), 
           keyStart(0), keyEnd(0), isWithdrawn(false) {}
 
-    // Mark first element as start of keys and x-th as end, update keys and nonKeys
+    // Mark x elements as keys starting from the last key pivot
     void withDraw(size_t x) {
-        if (x > elements.size() || x == 0) {
-            throw out_of_range("Invalid index for key boundary");
+        if (x == 0) {
+            throw out_of_range("Number of elements must be greater than 0");
         }
-        keyStart = 0;              // First element is start of keys
-        keyEnd = x - 1;            // x-th element (1-based) is end of keys
+        // Set new keyStart based on previous state
+        if (!isWithdrawn) {
+            keyStart = 0; // First call starts at beginning
+        } else {
+            keyStart = keyEnd + 1; // Continue from last key
+        }
+        // Calculate new keyEnd (x elements from keyStart, 1-based)
+        keyEnd = keyStart + x - 1;
+        if (keyEnd >= elements.size()) {
+            throw out_of_range("Key range exceeds universal set size");
+        }
         isWithdrawn = true;
 
         // Update keys

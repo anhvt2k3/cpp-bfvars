@@ -897,10 +897,11 @@ public:
         Result res;
         res.nof_collision = 0;
         chrono::duration<double> total_elapsed(0);
-        auto keyBatches = partitionKeys(keys, step_size);
 
-        for (int stepping=0; stepping<step_num; stepping++) 
+        //* iterating throuhgh the set continously with drawing new data and re-evaluate
+        for (int stepping=0; unitset.withDraw(step_size) || stepping<step_num; stepping++) 
         {
+        // # Insert by step_size
             //* See if it is a StaticFilter
             if (auto sf = dynamic_cast<BloomFilterModels::StaticFilter*>(bf.get())) {
                 if ( sf && !sf->getInitStatus() ) { // * Init if haven't
@@ -913,7 +914,7 @@ public:
                     total_elapsed += end - start;
                 }
             
-            for (auto data : batch) {
+            for (auto data : unitset.getKeys()) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
                 bool testBf = bf->Test(dataBytes);
                 auto start = chrono::high_resolution_clock::now();
@@ -926,7 +927,7 @@ public:
             
             } else {
         // * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
-            for (auto data : batch) {
+            for (auto data : unitset.getKeys()) {
                 vector<uint8_t> dataBytes = getAsciiBytes(data);
                 res.nof_collision += bf->Test(dataBytes) ;
                 auto start = chrono::high_resolution_clock::now();
@@ -935,6 +936,34 @@ public:
                 total_elapsed += end - start;
                 }
             }
+
+        // # Test by step_size
+            
+            long long int fcount = 0;
+            long long int testCount = 0;
+            Result result_1;
+            auto time = chrono::duration<double>(0);
+
+            for (int i=0; i<sets.size(); i++)
+            {
+                auto set = sets[i]; cout << "[testFP] Testing on Set "<<i<<" isKey="<<set.isKey<<".\n";
+                result_1 = TestFP(set.data, set.isKey);
+                fcount += result_1.FP.size();
+                tc.fp += result_1.FP.size();
+                testCount += result_1.testCount;
+                time += result_1.elapsed; cout << "[testFP] Set "<<i<<" fp="<<result_1.FP.size()<<" fn="<<result_1.FN.size()<<".\n";
+            }
+
+            float accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
+            cout << fixed << setprecision(6);
+            cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
+            cout << "Total Test Count: " << testCount << endl;
+            cout << "Total Elapsed Time: " << time.count() << "s" << endl;
+            auto bisearch_time = BinarySearchReadTime(fullset).count();
+            cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
+            cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
+            cout << endl; 
+
         }
 
         tc.adding_time = total_elapsed.count() / keys.size();
@@ -1075,39 +1104,6 @@ public:
 
     ~Tester() {}
 };
-
-
-void logResult(vector<shared_ptr<TestCase>> tcs)
-{
-    for (auto tc : tcs)
-    {
-        MonitorLogger::log({{"id", to_string(tc->id)},
-                            {"filter", tc->filterName},
-                            {"algo", tc->algo},
-                            {"scheme", tc->scheme},
-                            {"merge_time", to_string(tc->merge_time)},
-                            {"adding_time", to_string(tc->adding_time)},
-                            {"test_time", to_string(tc->test_time)},
-                            {"accuracy", to_string(tc->accuracy)},
-                            {"false_positives", to_string(tc->fp)},
-                            {"memory", to_string(tc->bf_memory)}});
-    }
-
-    MonitorLogger::log({{"id", to_string(std::time(nullptr))},
-                        {"filter", "Binary Search"},
-                        {"adding_time", to_string(tcs.back()->adding_time)},
-                        {"test_time", to_string(tcs.back()->test_time)},
-                        {"accuracy", to_string(1)},
-                        {"false_positives", to_string(0)},
-                        {"memory", to_string(tcs.back()->bs_memory)}});
-}
-
-void saveBitmap(const BloomFilterModels::AbstractFilter* filter)
-{
-    cout << "Saving bitmap to file!" << endl;
-    saveBitmapToCSV(filter);
-    cout << "Bitmap saved!" << endl;
-}
 
 int main(int argc, char *argv[])
 {
