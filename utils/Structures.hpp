@@ -14,8 +14,9 @@ using namespace std;
 class Result 
 {
     public:
-    long long int testCount = 0;
-        long long int nof_collision = 0;
+        long long int testCount = 0;
+    // Number of hard collision detected by Test()
+        long long int nof_collision = 0; 
         long long int nof_removable = 0;
         chrono::duration<double> elapsed;
         vector<string> FP;
@@ -58,21 +59,21 @@ public:
 
 class UniversalSet {
 private:
-    vector<string> elements; // Universal set of strings
-    vector<string> keys;     // Stores keys
-    vector<string> nonKeys;  // Stores non-keys
-    size_t keyStart;        // Index of first key
-    size_t keyEnd;          // Index of last key
-    bool isWithdrawn;       // Flag to check if withDraw was called
+vector<string> keys;     // Stores keys
+vector<string> nonKeys;  // Stores non-keys
+bool isWithdrawn;       // Flag to check if withDraw was called
 
 public:
+    vector<string> elements; // Universal set of strings
+    size_t keyStart;        // Index of first key
+    size_t keyEnd;          // Index of last key
     // Constructor
     UniversalSet(const vector<string>& input) 
         : elements(input), keys(), nonKeys(), 
           keyStart(0), keyEnd(0), isWithdrawn(false) {}
 
     // Mark x elements as keys starting from the last key pivot
-    void withDraw(size_t x) {
+    vector<string> withDraw(size_t x) {
         if (x == 0) {
             throw out_of_range("Number of elements must be greater than 0");
         }
@@ -89,14 +90,17 @@ public:
         }
         isWithdrawn = true;
 
-        // Update keys
-        keys.clear();
-        keys.assign(elements.begin() + keyStart, elements.begin() + keyEnd + 1);
+        // Append keys
+        keys.insert(keys.end() ,elements.begin() + keyStart, elements.begin() + keyEnd + 1);
 
         // Update nonKeys
         nonKeys.clear();
-        nonKeys.insert(nonKeys.end(), elements.begin(), elements.begin() + keyStart);
-        nonKeys.insert(nonKeys.end(), elements.begin() + keyEnd + 1, elements.end());
+        nonKeys.assign(elements.begin() + keyEnd + 1, elements.end());
+
+        
+        vector<string> withdrawal;
+        withdrawal.assign(elements.begin() + keyStart, elements.begin() + keyEnd + 1);
+        return withdrawal;
     }
 
     // Return keys

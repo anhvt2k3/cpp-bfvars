@@ -30,7 +30,7 @@ namespace BloomFilterModels
                   scheme) // Call the base class constructor directly
         {
             cout << "CBF constructor with params" << endl;
-            cout << "CBF created with k="<<k<< "n="<<maxCapacity<<" fpRate="<<fpRate<<".\n";
+            cout << "CBF created with k="<<k<< " n="<<maxCapacity<<" fpRate="<<fpRate<<".\n";
         }
         
         void Init(
@@ -43,7 +43,7 @@ namespace BloomFilterModels
             string scheme = Defaults::HASH_SCHEME)
         {
             StaticFilter::Init(n, Defaults::CBF_BUCKET_SIZE, fpRate, k, countExist, algorithm, scheme);
-            cout << "CBF created with k="<<k<< "n="<<maxCapacity<<" fpRate="<<fpRate<<".\n";
+            cout << "CBF created with k="<<k<< " n="<<maxCapacity<<" fpRate="<<fpRate<<".\n";
         }
 
         string getFilterName() const

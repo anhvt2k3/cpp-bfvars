@@ -867,110 +867,6 @@ public:
         conf.close();
     }
 
-    void testOnlyTestsuite(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME)
-    {
-        // Write headers to CSV files
-        auto& tc = *tcs.back();
-        auto now = std::chrono::high_resolution_clock::now();
-        auto duration = now.time_since_epoch();
-        auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-        tc.id = millisec;
-        cout << "[INFO] Algorithm, Scheme and Clock all set up and ready.\n";
-
-        // # Evaluate for FP and Latency
-        doTestAndLog(tc);
-        cout << "[Testsuite] Done FP testing and collecting.\n";
-        
-        cout << "[Testsuite] Done exporting configuration.\n";
-
-        // # Finalization
-        cout << "Test done running!" << endl;
-    }
-
-    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME, uint32_t step_size = 500, uint32_t step_num = 1200)
-    {
-        // # Test node 1
-        // Insert set S -> time
-        auto& tc = *tcs.back();
-        
-        UniversalSet unitset(getShuffledFullsetCopy(fullset)); //* shuffled version of fullset is used
-        Result res;
-        res.nof_collision = 0;
-        chrono::duration<double> total_elapsed(0);
-
-        //* iterating throuhgh the set continously with drawing new data and re-evaluate
-        for (int stepping=0; unitset.withDraw(step_size) || stepping<step_num; stepping++) 
-        {
-        // # Insert by step_size
-            //* See if it is a StaticFilter
-            if (auto sf = dynamic_cast<BloomFilterModels::StaticFilter*>(bf.get())) {
-                if ( sf && !sf->getInitStatus() ) { // * Init if haven't
-                    auto start = chrono::high_resolution_clock::now();
-                    sf->Init(
-                        keys.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 
-                        0, 0, algo, scheme
-                    );
-                    auto end = chrono::high_resolution_clock::now();
-                    total_elapsed += end - start;
-                }
-            
-            for (auto data : unitset.getKeys()) {
-                vector<uint8_t> dataBytes = getAsciiBytes(data);
-                bool testBf = bf->Test(dataBytes);
-                auto start = chrono::high_resolution_clock::now();
-                if (!testBf) bf->Add(dataBytes);
-                auto end = chrono::high_resolution_clock::now();
-                res.nof_collision += testBf ;
-                total_elapsed += end - start;
-                // cout << "Adding: " << dataBytes.data() << endl;
-            }
-            
-            } else {
-        // * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
-            for (auto data : unitset.getKeys()) {
-                vector<uint8_t> dataBytes = getAsciiBytes(data);
-                res.nof_collision += bf->Test(dataBytes) ;
-                auto start = chrono::high_resolution_clock::now();
-                bf->TestAndAdd(dataBytes);
-                auto end = chrono::high_resolution_clock::now();
-                total_elapsed += end - start;
-                }
-            }
-
-        // # Test by step_size
-            
-            long long int fcount = 0;
-            long long int testCount = 0;
-            Result result_1;
-            auto time = chrono::duration<double>(0);
-
-            for (int i=0; i<sets.size(); i++)
-            {
-                auto set = sets[i]; cout << "[testFP] Testing on Set "<<i<<" isKey="<<set.isKey<<".\n";
-                result_1 = TestFP(set.data, set.isKey);
-                fcount += result_1.FP.size();
-                tc.fp += result_1.FP.size();
-                testCount += result_1.testCount;
-                time += result_1.elapsed; cout << "[testFP] Set "<<i<<" fp="<<result_1.FP.size()<<" fn="<<result_1.FN.size()<<".\n";
-            }
-
-            float accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
-            cout << fixed << setprecision(6);
-            cout << "False Count: " << fcount << " -- Accuracy: " << accuracy << endl;
-            cout << "Total Test Count: " << testCount << endl;
-            cout << "Total Elapsed Time: " << time.count() << "s" << endl;
-            auto bisearch_time = BinarySearchReadTime(fullset).count();
-            cout << "Binary Search Operate Time: " << binsearch_operatetime << "s" << endl;
-            cout << "Binary Search Elapsed Time: " << bisearch_time << "s" << endl;
-            cout << endl; 
-
-        }
-
-        tc.adding_time = total_elapsed.count() / keys.size();
-        tc.nof_collision = res.nof_collision;
-        tc.nof_operand = res.testCount;
-    }
-
     void doTestAndLog(TestCase &tc)
     {
         long long int fcount = 0;
@@ -1011,6 +907,116 @@ public:
         tc.filterID = bf->getFilterCode();
     }
 
+    void testOnlyTestsuite(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME)
+    {
+        // Write headers to CSV files
+        auto& tc = *tcs.back();
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration = now.time_since_epoch();
+        auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+        tc.id = millisec;
+        cout << "[INFO] Algorithm, Scheme and Clock all set up and ready.\n";
+
+        // # Evaluate for FP and Latency
+        doTestAndLog(tc);
+        cout << "[Testsuite] Done FP testing and collecting.\n";
+        
+        cout << "[Testsuite] Done exporting configuration.\n";
+
+        // # Finalization
+        cout << "Test done running!" << endl;
+    }
+
+    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME, uint32_t step_size = 200000)
+    {
+        // # Test node 1
+        // Insert set S -> time
+        auto& tc = *tcs.back();
+        
+        UniversalSet uniset(getShuffledFullsetCopy(fullset)); //* shuffled version of fullset is used
+        Result res; ostringstream acc_log;
+        res.nof_collision = 0;
+        chrono::duration<double> insert_elapsed(0);
+        double test_elapsed = 0;
+        uint32_t step_num = keys.size() / step_size;
+
+        //* iterating throuhgh the set continously with drawing new data and re-evaluate
+        for (int stepping=0; stepping<step_num; stepping++) 
+        {
+        // # Insert by step_size
+            //* See if it is a StaticFilter
+            if (auto sf = dynamic_cast<BloomFilterModels::StaticFilter*>(bf.get())) {
+                if ( sf && !sf->getInitStatus() ) { // * Init if haven't
+                cout << "First time initialization." << endl;
+                    auto start = chrono::high_resolution_clock::now();
+                    sf->Init(
+                        keys.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 
+                        0, 0, algo, scheme
+                    );
+                    auto end = chrono::high_resolution_clock::now();
+                    insert_elapsed += end - start;
+                }
+            
+                cout << "Adding to static filter : " <<uniset.keyEnd-uniset.keyStart+1<< endl;
+                for (auto data : uniset.withDraw(step_size)) {
+                    vector<uint8_t> dataBytes = getAsciiBytes(data);
+                    bool testBf = bf->Test(dataBytes);
+                    auto start = chrono::high_resolution_clock::now();
+                    bf->Add(dataBytes);
+                    auto end = chrono::high_resolution_clock::now();
+                    res.nof_collision += testBf ;
+                    insert_elapsed += end - start;
+                }
+                
+            } else {
+                cout << "Adding to dynamic filter : " <<uniset.keyEnd-uniset.keyStart+1<< endl;
+        // * Dynamic Filter will need this to erradicate 1 key exist accoss multiple filter (no matter if it is just an FP or not)
+                for (auto data : uniset.withDraw(step_size)) {
+                    vector<uint8_t> dataBytes = getAsciiBytes(data);
+                    res.nof_collision += bf->Test(dataBytes) ;
+                    auto start = chrono::high_resolution_clock::now();
+                    bf->TestAndAdd(dataBytes);
+                    auto end = chrono::high_resolution_clock::now();
+                    insert_elapsed += end - start;
+                }
+            }
+
+        // # Test by step_size
+            long long int fcount = 0;
+            long long int testCount = 0;
+            Result result;
+            auto test_subelapsed = chrono::duration<double>(0);
+
+            cout << "[testFP] Testing on indexStart="<<uniset.keyStart<<" indexEnd="<<uniset.keyEnd<<" .\n";
+            result = TestFP(uniset.getKeys(), true);
+            fcount += result.FP.size();
+            tc.fp += result.FP.size();
+            testCount += result.testCount;
+            test_subelapsed += result.elapsed; cout << "[testFP] Set keys fp="<<result.FP.size()<<" fn="<<result.FN.size()<<".\n";
+            
+            cout << "[testFP] Testing on indexStart="<<uniset.keyEnd+1<<" .\n";
+            result = TestFP(uniset.getNonKeys(), false);
+            fcount += result.FP.size();
+            tc.fp += result.FP.size();
+            testCount += result.testCount;
+            test_subelapsed += result.elapsed; cout << "[testFP] Set nonkeys fp="<<result.FP.size()<<" fn="<<result.FN.size()<<".\n";
+
+            // float accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
+            // : save the accuracy log set. FP - key list size - universe list size
+            test_elapsed += test_subelapsed.count() / uniset.elements.size();
+            acc_log << "(" << fcount << " " << uniset.getKeys().size() << " " << uniset.elements.size() << ")";
+        }
+        
+        tc.adding_time = insert_elapsed.count() / uniset.getKeys().size();
+        tc.test_time = test_elapsed / step_num;
+        tc.nof_collision = res.nof_collision;
+        tc.test_case = "InsertFullKey";
+        tc.operation_time = binsearch_operatetime;
+        tc.binsearch_time = BinarySearchReadTime(fullset).count();
+        tc.filterID = bf->getFilterCode();
+        tc.accuracy_log = acc_log.str();
+    }
+
     void BusEval(vector<string> hashFuncs, vector<string> hashSchemes, int sets4test = 3) 
     {
         initTesterwNKSet(sets4test);
@@ -1030,14 +1036,13 @@ public:
             
             doAddAndLog(hashFunc, hashScheme);
             tc->bf_memory=bf->Size();
-            doTestAndLog(*tc);
         
-            cout << "[Testsuite] Done exporting configuration.\n";
+            cout << "[Testsuite] Done for 1 test case .\n";
         } }
 
-        resetKeyAndSet();
-        cout << "Key Size ="<< to_string(keys.size()) <<".\n";
-        cout << "[INFO] Evaluation and Resetting sets done.\n";
+        // resetKeyAndSet();
+        // cout << "Key Size ="<< to_string(keys.size()) <<".\n";
+        // cout << "[INFO] Evaluation and Resetting sets done.\n";
     }
 
     void BankEval(std::vector<TypeCreator> &typeList, int instancesPerType, vector<string> hashFuncs, vector<string> hashSchemes)
