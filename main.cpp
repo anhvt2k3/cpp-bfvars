@@ -887,17 +887,17 @@ public:
         cout << "Test done running!" << endl;
     }
 
-    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME, uint32_t steps = 500)
+    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME, uint32_t step_size = 500, uint32_t step_num = 1200)
     {
         // # Test node 1
         // Insert set S -> time
         auto& tc = *tcs.back();
         
-        UniversalSet unitset(fullset);
+        UniversalSet unitset(getShuffledFullsetCopy(fullset)); //* shuffled version of fullset is used
         Result res;
         res.nof_collision = 0;
         chrono::duration<double> total_elapsed(0);
-        auto keyBatches = partitionKeys(keys, steps);
+        auto keyBatches = partitionKeys(keys, step_size);
 
         for (const auto& batch : keyBatches) 
         {
