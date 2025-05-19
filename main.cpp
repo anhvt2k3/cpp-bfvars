@@ -7,7 +7,7 @@
 // #define AtomicII
 // #define Icisn
 #define Bus
-#define Banking
+// #define Banking
 
 using namespace std;
 using namespace BloomFilterModels;
@@ -957,6 +957,7 @@ public:
                     insert_elapsed += end - start;
                 }
             
+                //* first init will have this adding = 1
                 cout << "Adding to static filter : " <<uniset.keyEnd-uniset.keyStart+1<< endl;
                 for (auto data : uniset.withDraw(step_size)) {
                     vector<uint8_t> dataBytes = getAsciiBytes(data);
@@ -1003,12 +1004,14 @@ public:
 
             // float accuracy = 1.0f - static_cast<float>(fcount) / static_cast<float>(testCount);
             // : save the accuracy log set. FP - key list size - universe list size
-            test_elapsed += test_subelapsed.count() / uniset.elements.size();
-            acc_log << "(" << fcount << " " << uniset.getKeys().size() << " " << uniset.elements.size() << ")";
+            test_elapsed += test_subelapsed.count();
+            acc_log << "(" << fcount << "," << uniset.getKeys().size() << "," << uniset.elements.size() << ")";
         }
         
-        tc.adding_time = insert_elapsed.count() / uniset.getKeys().size();
-        tc.test_time = test_elapsed / step_num;
+        tc.avg_insert_time = to_string(insert_elapsed.count())+":"+ to_string(uniset.getKeys().size());
+        tc.avg_test_time = to_string(test_elapsed)+":"+to_string(uniset.elements.size())+":"+ to_string(step_num);
+        cout << "Measurement: avg_insert_time="<<tc.avg_insert_time<<endl;
+        cout << "Measurement: avg_test_time="<<tc.avg_test_time<<endl;
         tc.nof_collision = res.nof_collision;
         tc.test_case = "InsertFullKey";
         tc.operation_time = binsearch_operatetime;
@@ -1257,12 +1260,12 @@ int main(int argc, char *argv[])
 
     vector<TypeCreator> typeList = {
         []() { return std::make_shared<OneHashingBloomFilter>(); },
-        []() { return std::make_shared<DeletableBloomFilter>(); },
-        []() { return std::make_shared<StandardBloomFilter>(); },
-        []() { return std::make_shared<CountingBloomFilter>(); },
+        // []() { return std::make_shared<DeletableBloomFilter>(); },
+        // []() { return std::make_shared<StandardBloomFilter>(); },
+        // []() { return std::make_shared<CountingBloomFilter>(); },
         // []() { return std::make_shared<ScalableDeletableBloomFilter>(); },
         // []() { return std::make_shared<ScalableStandardBloomFilter>(); },
-        []() { return std::make_shared<CountingScalableBloomFilter>(); },
+        // []() { return std::make_shared<CountingScalableBloomFilter>(); },
         // []() { return std::make_shared<DynamicBloomFilter>(); },
         // []() { return std::make_shared<DynamicStdCountingBloomFilter>(); }
     };

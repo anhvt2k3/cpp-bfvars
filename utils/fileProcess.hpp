@@ -15,6 +15,8 @@ struct TestCase {
     string scheme = "NaN";
     string test_case = "NaN";
     string accuracy_log = "empty";
+    string avg_insert_time = "0";
+    string avg_test_time = "0";
     double adding_time = 0;
     double merge_time = 0;
     string key_set = "NaN";
@@ -44,7 +46,9 @@ struct TestCase {
         filterName = "NaN";
         algo = "NaN";
         scheme = "NaN";
-        string accuracy_log = "empty";
+        accuracy_log = "empty";
+        string avg_insert_time = "0";
+        string avg_test_time = "0";
         test_case = "NaN";
         adding_time = 0;
         merge_time = 0;
