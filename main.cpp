@@ -927,7 +927,7 @@ public:
         cout << "Test done running!" << endl;
     }
 
-    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME, uint32_t step_size = 200000)
+    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME, uint32_t step_size = 50000)
     {
         // # Test node 1
         // Insert set S -> time
@@ -936,7 +936,7 @@ public:
         UniversalSet uniset(getShuffledFullsetCopy(fullset)); //* shuffled version of fullset is used
         Result res; ostringstream acc_log;
         res.nof_collision = 0;
-        chrono::duration<double> insert_elapsed(0);
+        chrono::duration<double> insert_elapsed(0); 
         double test_elapsed = 0;
         uint32_t step_num = keys.size() / step_size;
 
@@ -1043,9 +1043,9 @@ public:
             cout << "[Testsuite] Done for 1 test case .\n";
         } }
 
-        // resetKeyAndSet();
-        // cout << "Key Size ="<< to_string(keys.size()) <<".\n";
-        // cout << "[INFO] Evaluation and Resetting sets done.\n";
+        resetKeyAndSet();
+        cout << "Key Size ="<< to_string(keys.size()) <<".\n";
+        cout << "[INFO] Evaluation and Resetting sets done.\n";
     }
 
     void BankEval(std::vector<TypeCreator> &typeList, int instancesPerType, vector<string> hashFuncs, vector<string> hashSchemes)
@@ -1260,12 +1260,12 @@ int main(int argc, char *argv[])
 
     vector<TypeCreator> typeList = {
         []() { return std::make_shared<OneHashingBloomFilter>(); },
-        // []() { return std::make_shared<DeletableBloomFilter>(); },
-        // []() { return std::make_shared<StandardBloomFilter>(); },
-        // []() { return std::make_shared<CountingBloomFilter>(); },
+        []() { return std::make_shared<DeletableBloomFilter>(); },
+        []() { return std::make_shared<StandardBloomFilter>(); },
+        []() { return std::make_shared<CountingBloomFilter>(); },
+        []() { return std::make_shared<CountingScalableBloomFilter>(); },
         // []() { return std::make_shared<ScalableDeletableBloomFilter>(); },
         // []() { return std::make_shared<ScalableStandardBloomFilter>(); },
-        // []() { return std::make_shared<CountingScalableBloomFilter>(); },
         // []() { return std::make_shared<DynamicBloomFilter>(); },
         // []() { return std::make_shared<DynamicStdCountingBloomFilter>(); }
     };
