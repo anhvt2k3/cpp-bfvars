@@ -927,7 +927,7 @@ public:
         cout << "Test done running!" << endl;
     }
 
-    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME, uint32_t step_size = 50000)
+    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME, uint32_t step_size = 60000)
     {
         // # Test node 1
         // Insert set S -> time
