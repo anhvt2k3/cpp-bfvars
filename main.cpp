@@ -537,9 +537,9 @@ public:
         
         for (auto data : keys) {
             vector<uint8_t> dataBytes = getAsciiBytes(data);
-            auto start = chrono::high_resolution_clock::now();
             bool testBf = bf->Test(dataBytes);
-            if (!testBf) bf->Add(dataBytes);
+            auto start = chrono::high_resolution_clock::now();
+            bf->Add(dataBytes);
             auto end = chrono::high_resolution_clock::now();
             res.nof_collision += testBf ;
             total_elapsed += end - start;
