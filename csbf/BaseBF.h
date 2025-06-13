@@ -143,6 +143,7 @@ namespace BloomFilterModels
         // :TODO
         StaticFilter* Duplicate(uint32_t capacity, double fpRate, int k) {
             // : duplicate itself with some minor changes as input parameters if needed
+            throw logic_error("Duplicate is not installed in this Static-liked filter!.\n");
             return nullptr;
         }
 
