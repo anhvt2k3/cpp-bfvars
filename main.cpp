@@ -1245,8 +1245,10 @@ int main(int argc, char *argv[])
     vector<string> hashFuncs = {
         // Hash32::ALGO_MURMUR3_32,
         Hash32::ALGO_MURMUR3_128,
-        // Hash32::ALGO_FNV1A,
-        // Hash32::ALGO_SIPHASH,
+        Hash32::ALGO_FNV1A,
+        Hash32::ALGO_SIPHASH,
+        Hash32::ALGO_JENKINS,
+        Hash32::ALGO_XXH3,
         Hash32::ALGO_SHA256
     };
 
