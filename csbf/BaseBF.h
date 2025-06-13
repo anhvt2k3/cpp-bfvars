@@ -82,7 +82,11 @@ namespace BloomFilterModels
             return 0;
         }
         virtual AbstractFilter* Duplicate(uint32_t n, double fpRate, int k) 
-        { cout<<"Unsupported method: Duplicate"<<endl; return nullptr; };
+        { 
+            cout<<"Unsupported method: Duplicate"<<endl; 
+            throw std::logic_error("This method is available in StaticFilter only!"); 
+            return nullptr;
+        }
         virtual AbstractFilter &Reset() { return *this; };
     };
 
