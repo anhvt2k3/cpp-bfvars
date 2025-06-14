@@ -21,13 +21,13 @@ namespace BloomFilterModels
             string algorithm = Defaults::HASH_ALGORITHM,
             string scheme = Defaults::HASH_SCHEME)
             : StaticFilter(
-                  n,
-                  b,
-                  fpRate,
-                  k,
-                  countExist,
-                  algorithm,
-                  scheme) // Call the base class constructor directly
+                n,
+                b,
+                fpRate,
+                k,
+                countExist,
+                algorithm,
+                scheme) // Call the base class constructor directly
         {
             cout << "CBF constructor with params" << endl;
             cout << "CBF created with k="<<k<< " n="<<maxCapacity<<" fpRate="<<fpRate<<".\n";
@@ -84,6 +84,13 @@ namespace BloomFilterModels
         double FPrate() const
         {
             return fpRate;
+        }
+
+        shared_ptr<AbstractFilter> Duplicate(uint32_t capacity, double fpRate, int k) {
+            // Duplicate itself with some minor changes as input parameters if needed
+            auto newFilter = make_shared<CountingBloomFilter>(capacity, Defaults::CBF_BUCKET_SIZE, fpRate, k);
+            newFilter->ResetHashing(algorithm, scheme);
+            return newFilter;
         }
 
         // Tests for membership of the data.

@@ -281,4 +281,144 @@ public:
         return *this;
     }
     };
+    
+    class GenericDynamicBloomFilter : public DynamicFilter {
+        // vector<shared_ptr<AbstractFilter>> filters;
+        double fp; // Target false-positive rate
+        uint32_t c; // Maximum item count for each filter
+
+        // Adds a new filter based on the properties of the last filter
+        int AddFilter() {
+            // Get a new filter with the same parameters by duplicating last filter
+            auto newFilter = filters.back()->Duplicate(c, fp, filters.back()->K());
+            filters.push_back(std::shared_ptr<AbstractFilter>(newFilter));
+            return 0;
+        }
+
+    public:
+        GenericDynamicBloomFilter(std::shared_ptr<AbstractFilter> initialFilter, 
+            uint32_t max_count = Defaults::MAX_COUNT_NUMBER,
+            double false_positive_rate = Defaults::FALSE_POSITIVE_RATE)
+            : c(max_count), fp(false_positive_rate) 
+        {
+            // * initialFilter must not be Init() yet
+            if (initialFilter->isInittedStatus()) {
+                throw std::runtime_error("Initial filter must not be initialized.");
+            }
+            initialFilter->Init(max_count);
+            filters.push_back(initialFilter);
+        }
+
+        string getFilterName() const {
+            return "GenericDynamicBloomFilter";
+        }
+
+        string getFilterCode() const {
+            return "GenaricDBF";
+        }
+
+        std::string getConfigure() {
+            std::string res = "_ _ _ GDBF Scope _ _ _ \n";
+            res += "False positive rate: " + std::__cxx11::to_string(FPrate()) + "\n";
+            res += "Current capacity: " + std::__cxx11::to_string(Capacity()) + "\n";
+            res += "Current filter size: " + std::__cxx11::to_string(Size()) + "\n";
+            res += "Number of filters: " + std::__cxx11::to_string(filters.size()) + "\n";
+            for (int i=0; i<filters.size(); i++) {
+                auto filter = filters[i];
+                res += "_ _ _ Filter " + std::__cxx11::to_string(i) + " _ _ _\n";
+                res += filter->getConfigure();
+            }
+            return res;
+        }
+
+        // Return False Positive Rate
+        double FPrate() const {
+            return fp;
+        }
+
+        uint32_t Size() const {
+            uint32_t size = 0;
+            for (const auto& filter : filters) {
+                size += filter->Size();
+            }
+            return size;
+        }
+
+        uint32_t Capacity() const {
+            uint32_t cap = 0;
+            for (const auto& filter : filters) {
+                cap += filter->Capacity();
+            }
+            return cap;
+        }
+
+        uint32_t K() const {
+            return filters.empty() ? 0 : filters.front()->K();
+        }
+
+        uint32_t Count() const {
+            uint32_t count = 0;
+            for (const auto& filter : filters) {
+                count += filter->Count();
+            }
+            return count;
+        }
+
+        bool Test(const std::vector<uint8_t>& data) const {
+            for (const auto& filter : filters) {
+                if (filter->Test(data)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        GenericDynamicBloomFilter& Add(const std::vector<uint8_t>& data) {
+            if (filters.empty() || filters.back()->Count() >= filters.back()->Capacity()) {
+                AddFilter();
+            }
+            filters.back()->Add(data);
+            return *this;
+        }
+
+        bool TestAndAdd(const std::vector<uint8_t>& data) {
+            bool member = Test(data);
+            if (!member) {
+                Add(data);
+            }
+            return member;
+        }
+
+        bool TestAndRemove(const std::vector<uint8_t>& data) {
+            int isNotUnique = -1; // -1: value not found, 0: value found once, >0: value found multiple times
+            int i = 0;
+            int filter_pos = 0;
+            for (auto& filter : filters) {
+                if (filter->Test(data)) {
+                    isNotUnique++;
+                    filter_pos = i;
+                }
+                i++;
+            }
+            if (isNotUnique == 0) {
+                filters[filter_pos]->TestAndRemove(data);
+                return true;
+            }
+            return false;
+        }
+
+        virtual void ResetHashing(
+            string algorithm = Defaults::HASH_ALGORITHM,
+            string scheme = Defaults::HASH_SCHEME
+        ) {
+            for (auto& filter : filters) {
+                filter->ResetHashing(algorithm, scheme);
+            }
+        }
+
+        GenericDynamicBloomFilter& Reset() {
+            filters.clear();
+            return *this;
+        }
+    };
 }

@@ -7,6 +7,7 @@
 // #define AtomicII
 // #define Icisn
 #define Bus
+// #define default
 // #define Banking
 
 using namespace std;
@@ -927,7 +928,7 @@ public:
         cout << "Test done running!" << endl;
     }
 
-    void doAddAndLog(string algo = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME, uint32_t step_size = 60000)
+    void doAddAndLog(uint32_t step_size = 200000)
     {
         // # Test node 1
         // Insert set S -> time
@@ -944,28 +945,26 @@ public:
         for (int stepping=0; stepping<step_num; stepping++) 
         {
         // # Insert by step_size
-            //* See if it is a StaticFilter
+        //* See if it is a StaticFilter
             if (auto sf = dynamic_cast<BloomFilterModels::StaticFilter*>(bf.get())) {
-                if ( sf && !sf->getInitStatus() ) { // * Init if haven't
-                cout << "First time initialization." << endl;
-                    auto start = chrono::high_resolution_clock::now();
-                    sf->Init(
-                        keys.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 
-                        0, 0, algo, scheme
-                    );
-                    auto end = chrono::high_resolution_clock::now();
-                    insert_elapsed += end - start;
-                }
-            
-                //* first init will have this adding = 1
+                // // * If it is a StaticFilter, we need to init it first
+                // if ( !sf->isInittedStatus() ) { // * Init if haven't
+                //     cout << "First time initialization." << endl;
+                //     auto start = chrono::high_resolution_clock::now();
+                //     sf->Init( keys.size() ); 
+                //     sf->ResetHashing(algo, scheme);
+                //     auto end = chrono::high_resolution_clock::now();
+                //     insert_elapsed += end - start;
+                // }
+                // //* first init will have this adding = 1
                 cout << "Adding to static filter : " <<uniset.keyEnd-uniset.keyStart+1<< endl;
                 for (auto data : uniset.withDraw(step_size)) {
                     vector<uint8_t> dataBytes = getAsciiBytes(data);
-                    bool testBf = bf->Test(dataBytes);
+                    bool testBf = sf->Test(dataBytes);
                     auto start = chrono::high_resolution_clock::now();
-                    bf->Add(dataBytes);
+                    sf->Add(dataBytes);
                     auto end = chrono::high_resolution_clock::now();
-                    res.nof_collision += testBf ;
+                    res.nof_collision += testBf;
                     insert_elapsed += end - start;
                 }
                 
@@ -1020,93 +1019,29 @@ public:
         tc.accuracy_log = acc_log.str();
     }
 
-    void BusEval(vector<string> hashFuncs, vector<string> hashSchemes, int sets4test = 3) 
+    void BusEval(int sets4test = 4) 
     {
         initTesterwNKSet(sets4test);
         cout << "Key Set is : "<< getKeySet() <<endl;
 
-        for (auto hashFunc:hashFuncs) { for (auto hashScheme : hashSchemes) {
-            auto tc = make_shared<TestCase>(); tc->algo=hashFunc; tc->scheme=hashScheme; tc->filterName=bf->getFilterCode();
-            tc->bs_memory = keys.capacity() * (sizeof(std::string) + keys[0].capacity()) * 8;
-            tcs.push_back(tc);
-            
-            cout << "\n[BEGIN] Filter: " << bf->getFilterCode() << endl;
-            cout << "Configuration : "<< tc->algo <<"__"<< tc->scheme <<"__"<< tc->filterName << endl;
-            
-            auto now = std::chrono::high_resolution_clock::now();
-            auto duration = now.time_since_epoch();
-            auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(); tc->id = millisec;
-            
-            doAddAndLog(hashFunc, hashScheme);
-            tc->bf_memory=bf->Size();
+        auto tc = make_shared<TestCase>(); tc->algo=bf->algorithm; tc->scheme=bf->scheme; tc->filterName=bf->getFilterCode();
+        tc->bs_memory = keys.capacity() * (sizeof(std::string) + keys[0].capacity()) * 8;
+        tcs.push_back(tc);
         
-            cout << "[Testsuite] Done for 1 test case .\n";
-        } }
+        cout << "\n[BEGIN] Filter: " << bf->getFilterCode() << endl;
+        cout << "Configuration : "<< tc->algo <<"__"<< tc->scheme <<"__"<< tc->filterName << endl;
+        
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration = now.time_since_epoch();
+        auto millisec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(); tc->id = millisec;
+        
+        doAddAndLog();
+        tc->bf_memory=bf->Size();
+    
+        cout << "[Testsuite] Done for 1 test case .\n";
 
         resetKeyAndSet();
         cout << "Key Size ="<< to_string(keys.size()) <<".\n";
-        cout << "[INFO] Evaluation and Resetting sets done.\n";
-    }
-
-    void BankEval(std::vector<TypeCreator> &typeList, int instancesPerType, vector<string> hashFuncs, vector<string> hashSchemes)
-    {
-        auto filterSets = iterateTypes(typeList, instancesPerType);
-        
-        // * number of children filter should be equal to that of number of key sets
-        initTesterwNKSet(instancesPerType);
-        cout << "Key Set is : "<< getKeySet() <<endl;
-        
-        for (auto hashFunc : hashFuncs) { for (auto hashScheme : hashSchemes) { for (auto filterSet : filterSets) {
-            // * each run is with a different combination of [StaticFilter x Algo x Scheme]
-            // * loop through the StaticFilters and initialize them
-            // * bank's data -> blacklisted accounts
-
-            // * initiating the testing filter if it is MCBF
-            bool isMCBF = bf->getFilterCode() == "MergCBF";
-            // cout << "[LOG] " << filterSets.size() <<endl;
-            if (isMCBF) bf->Init(keys.size(), Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 0, 0, hashFunc, hashScheme);
-            
-            double add_time = 0; double merg_time = 0;
-            for (int i = 0; i < instancesPerType; i++)
-            {
-                int key_index = keysets[i]; auto _filter = filterSet[i];
-                cout << "Adding Key set is "<< key_index <<endl;
-                
-                auto start_add = chrono::high_resolution_clock::now();
-                _filter->Init(isMCBF? keys.size():sets[key_index].data.size(),
-                    Defaults::BUCKET_SIZE, Defaults::FALSE_POSITIVE_RATE, 0, 0, hashFunc, hashScheme);
-                
-                // * insert the child filter with key data
-                for (auto item : sets[key_index].data)
-                {
-                    // cout << "Adding "<< item <<" to "<<_filter->getFilterCode()<<endl;
-                    auto item_ = getAsciiBytes(item);
-                    _filter->Add(item_);
-                }
-
-                auto end_add = chrono::high_resolution_clock::now();
-                add_time += chrono::duration<double>(end_add-start_add).count();
-                
-                auto start_merg = chrono::high_resolution_clock::now();
-                // * add them to their parent
-                bf->AddFilter(_filter);
-                auto end_merg = chrono::high_resolution_clock::now();
-                merg_time += chrono::duration<double>(end_merg-start_merg).count();
-            }
-            auto tc = make_shared<TestCase>(); 
-            tcs.push_back(tc);
-            
-            cout << "\n[BEGIN] Filter: " << bf->getFilterCode() << endl;
-            cout << "Configuration : "<< hashFunc <<"__"<< hashScheme <<"__"<< bf->getFilterCode() << endl;
-            testOnlyTestsuite(hashFunc, hashScheme);
-            tc->algo=hashFunc; tc->scheme=hashScheme; tc->filterName=bf->getFilterCode(); tc->bf_memory=bf->Size(); tc->adding_time=add_time+merg_time; tc->merge_time=merg_time;
-            tc->bs_memory = keys.capacity() * (sizeof(std::string) + keys[0].capacity()) * 8;
-            // cout << "Config of filter: " << bf->getConfigure() << endl;
-            bf->Reset();
-            cout << "Testcase is DONE.\n";
-        } } }
-
-        resetKeyAndSet();
         cout << "[INFO] Evaluation and Resetting sets done.\n";
     }
 
@@ -1126,117 +1061,6 @@ int main(int argc, char *argv[])
     //     import_Busticketing_data();
     // }
 
-#ifdef AtomicI
-    ofstream perf("csvs/stdsuite-result.csv");
-    ofstream conf("csvs/stdsuite-config.csv");
-    if (!perf || !conf) {
-        cerr << "Cannot open file: std800k-result.csv or std800k-config.csv" << endl;
-        return 1;
-    }
-    Configuration cf;
-    TestCase tc;
-
-    perf << tc.getHeader();
-    conf << cf.getHeader();
-
-    for (auto filter : filters) {
-        cout << "Filter: " << filter->getFilterCode() << endl;
-        Tester tester(*filter);
-        Configuration cf(filter);
-        // tester.initTester800();
-        // tester.getEntrySize();
-        // tester.Testsuite800keys();
-
-        perf << tester.AAdd600k();
-        filter->Reset();
-        perf << tester.AAdd600k(set1,set3,set4,set2,set5);
-        filter->Reset();
-        perf << tester.AAdd600k(set2,set4,set3,set5,set1);
-        filter->Reset();
-        perf << tester.AAdd600k(set3,set5,set2,set4,set1);
-        filter->Reset();
-        perf << tester.AAdd600k(set3,set2,set5,set4,set1);
-        // tester.initTester200();
-        // tester.getEntrySize();
-        // tester.Testsuite200keys();
-        // saveBitmap(filter);
-        conf << cf.toCSVString();
-        cout << "-------------END-------------" << endl;
-        cout << endl;
-    }
-
-    conf.close();
-    perf.close();
-#endif
-#ifdef AtomicII
-    ofstream perf("csvs/stdsuite-2-result.csv");
-    ofstream conf("csvs/stdsuite-2-config.csv");
-    if (!perf || !conf) {
-        cerr << "Cannot open file: std800k-result.csv or std800k-config.csv" << endl;
-        return 1;
-    }
-    Configuration cf;
-    TestCase tc;
-
-    perf << tc.getHeader();
-    conf << cf.getHeader();
-
-    for (auto filter : filters) {
-        cout << "Filter: " << filter->getFilterCode() << endl;
-        Tester tester(*filter);
-        Configuration cf(filter);
-        // tester.initTester800();
-        // tester.getEntrySize();
-        // tester.Testsuite800keys();
-
-        perf << tester.AAdd400k();
-        filter->Reset();
-        perf << tester.AAdd400k(set1,set3,set4,set2,set5);
-        filter->Reset();
-        perf << tester.AAdd400k(set2,set4,set3,set5,set1);
-        filter->Reset();
-        perf << tester.AAdd400k(set3,set5,set2,set4,set1);
-        filter->Reset();
-        perf << tester.AAdd400k(set3,set2,set5,set4,set1);
-        // tester.initTester200();
-        // tester.getEntrySize();
-        // tester.Testsuite200keys();
-        // saveBitmap(filter);
-        conf << cf.toCSVString();
-        cout << "-------------END-------------" << endl;
-        cout << endl;
-    }
-
-    conf.close();
-    perf.close();
-#endif
-#ifdef Icisn
-    // * Testmode : default
-    string hashFuncs[] = {
-        Hash32::ALGO_MURMUR3_32,
-        Hash32::ALGO_MURMUR3_128,
-        Hash32::ALGO_FNV1A,
-        Hash32::ALGO_SIPHASH,
-    };
-
-    string hashSchemes[] = {
-        // Hash32::SCHEME_SERIAL,
-        Hash32::SCHEME_KIRSCH_MITZENMACHER,
-        // Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
-    };
-
-    for (auto hashFunc : hashFuncs) {
-        for (auto hashScheme : hashSchemes) {
-            DeletableBloomFilter *dlbf = new DeletableBloomFilter();
-            cout << "Filter: " << dlbf->getFilterCode() << endl;
-            Tester tester(*dlbf);
-            tester.BusEval(hashFunc, hashScheme);
-            cout << "Config of filter: " << dlbf->getConfigure() << endl;
-            delete(dlbf);
-        }
-    }
-    
-#endif
     
 #ifdef Bus
 {
@@ -1265,106 +1089,29 @@ int main(int argc, char *argv[])
         []() { return std::make_shared<DeletableBloomFilter>(); },
         []() { return std::make_shared<StandardBloomFilter>(); },
         []() { return std::make_shared<CountingBloomFilter>(); },
-        []() { return std::make_shared<CountingScalableBloomFilter>(); },
-        // []() { return std::make_shared<ScalableDeletableBloomFilter>(); },
-        // []() { return std::make_shared<ScalableStandardBloomFilter>(); },
+        []() { return std::make_shared<GenericScalableBloomFilter>(make_shared<CountingBloomFilter>); },
+        []() { return std::make_shared<GenericScalableBloomFilter>(make_shared<StandardBloomFilter>); },
+        []() { return std::make_shared<GenericScalableBloomFilter>(make_shared<DeletableBloomFilter>); },
+        []() { return std::make_shared<GenericScalableBloomFilter>(make_shared<OneHashingBloomFilter>); },
         // []() { return std::make_shared<DynamicBloomFilter>(); },
         // []() { return std::make_shared<DynamicStdCountingBloomFilter>(); }
     };
 
     vector<shared_ptr<TestCase>> tcs;
-    auto filterSets = iterateTypes(typeList, 1);
-    
-    // Loop over configs
-    for (auto filterSet : filterSets) { for (auto filter : filterSet) {
-        Tester tester(filter);  // assuming Tester takes reference to BaseCompositeFilter
-        tester.BusEval(hashFuncs, hashSchemes);
-        tcs = mergeTcs(tcs, tester.tcs);
-    } }
 
-    logResult(tcs);
-}
-#endif
-
-#ifdef Banking
-{
-    import_Bankblacklisting_data();
-
-    vector<string> hashFuncs = {
-        // Hash32::ALGO_MURMUR3_32,
-        Hash32::ALGO_MURMUR3_128,
-        Hash32::ALGO_FNV1A,
-        Hash32::ALGO_SIPHASH,
-        Hash32::ALGO_JENKINS
-    };
-
-    vector<string> hashSchemes = {
-        // Hash32::SCHEME_SERIAL,
-        Hash32::SCHEME_KIRSCH_MITZENMACHER,
-        // Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
-    };
-    
-    int instancesPerType = 3;
-
-    std::vector<std::pair<std::vector<TypeCreator>, std::shared_ptr<BloomFilterModels::AbstractFilter>>> configs = {
-        {
-            {
-                []() { return std::make_shared<DeletableBloomFilter>(); },
-                []() { return std::make_shared<StandardBloomFilter>(); },
-                []() { return std::make_shared<CountingBloomFilter>(); },
-                []() { return std::make_shared<OneHashingBloomFilter>(); }
-            },
-            std::make_shared<BloomFilterModels::MergeableFilter>()
-        }
-        ,
-        {
-            {
-                []() { return std::make_shared<MergeableCountingBloomFilter>(); }
-            },
-            std::make_shared<BloomFilterModels::MergeableCountingBloomFilter>()
-        }
-    };
-
-    vector<shared_ptr<TestCase>> tcs;
-    
-    // Loop over configs
-    for (auto &[typeList, filter] : configs) {
-        Tester tester(filter);  // assuming Tester takes reference to BaseCompositeFilter
-        tester.BankEval(typeList, instancesPerType, hashFuncs, hashSchemes);
-        tcs = mergeTcs(tcs, tester.tcs);
+    for (auto &typeCreator : typeList) {
+        for (auto &hashFunc : hashFuncs) { for (auto &hashScheme : hashSchemes) {
+            auto bf = typeCreator();
+            bf->ResetHashing(hashFunc, hashScheme);
+            Tester tester(bf);  // assuming Tester takes reference to BaseCompositeFilter
+            tester.BusEval();
+            tcs = mergeTcs(tcs, tester.tcs);
+        } }
     }
 
     logResult(tcs);
 }
 #endif
 
-#ifdef default
-    // * Testmode : default
-    string hashFuncs[] = {
-        Hash32::ALGO_MURMUR3_32,
-        Hash32::ALGO_MURMUR3_128,
-        // Hash32::ALGO_SHA256,
-        // Hash32::ALGO_XXH3,
-        Hash32::ALGO_FNV1A,
-        Hash32::ALGO_SIPHASH,
-    };
-
-    string hashSchemes[] = {
-        Hash32::SCHEME_SERIAL,
-        Hash32::SCHEME_KIRSCH_MITZENMACHER,
-        Hash32::SCHEME_ENHANCED_DOUBLE_HASHING,
-    };
-
-    for (auto hashFunc : hashFuncs) {
-        for (auto hashScheme : hashSchemes) {
-            CountingBloomFilter *scbf = new CountingBloomFilter();
-            cout << "Filter: " << scbf->getFilterCode() << endl;
-            Tester tester(*scbf);
-            tester.BusEval(hashFunc, hashScheme);
-
-            delete(scbf);
-        }
-    }
-#endif
     return 0;
 }

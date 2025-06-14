@@ -21,6 +21,7 @@ namespace BloomFilterModels
         Hash32::HashGen *hashGen; // Hash generator for creating hash indices
 
         double fpRate; // Target false-positive rate
+        bool isInitted = false;
                        // # Compulsory methods
         virtual string getFilterName() const = 0;
         virtual string getFilterCode() const = 0;
@@ -51,11 +52,17 @@ namespace BloomFilterModels
             string algorithm = Defaults::HASH_ALGORITHM,
             string scheme = Defaults::HASH_SCHEME)
         {
+            this->isInitted = true;
             cout << "Unsupported method: Init" << endl;
         };
+        virtual void ResetHashing( string algorithm, string scheme )
+        {
+            cout << "Unsupported method: Reset hashing" << endl;
+        };
+        // @ Supposed to be used in a Dynamic filter (Outer filter / Scaling filter)
         virtual void Init(vector<vector<uint8_t>> data, uint32_t countExist = 0)
         {
-            cout << "Unsupported method: Init" << endl;
+            cout << "Unsupported method: Init with data" << endl;
         }
         virtual string getConfigure()
         {
@@ -81,11 +88,17 @@ namespace BloomFilterModels
             cout << "Unsupported method: AddFilter" << endl;
             return 0;
         }
-        virtual AbstractFilter* Duplicate(uint32_t n, double fpRate, int k) 
+        virtual shared_ptr<AbstractFilter> Duplicate(uint32_t n, double fpRate, int k) 
+        // planning of naming it `Respawn' instead
         { 
             cout<<"Unsupported method: Duplicate"<<endl; 
             throw std::logic_error("This method is available in StaticFilter only!"); 
             return nullptr;
+        }
+        virtual bool isInittedStatus() const
+        {
+            throw std::logic_error("This method is available in StaticFilter only!");
+            return false;
         }
         virtual AbstractFilter &Reset() { return *this; };
     };
@@ -93,7 +106,6 @@ namespace BloomFilterModels
     // ! Filter parent class
     class StaticFilter : public AbstractFilter
     {
-    bool isInitted = false;
     public:
         void Init(
             uint32_t n,
@@ -104,7 +116,7 @@ namespace BloomFilterModels
             string algorithm = Defaults::HASH_ALGORITHM,
             string scheme = Defaults::HASH_SCHEME) override
         {
-            //@ automatically destroy the last buckets and assign a new one
+            //@ automatically override the last buckets and assign a new one
             this->isInitted = true;
             this->m = BloomFilterApp::Utils::OptimalMCounting(n, fpRate);
             this->k = k == 0 ? BloomFilterApp::Utils::OptimalKCounting(fpRate) : k;
@@ -112,8 +124,8 @@ namespace BloomFilterModels
             this->count = countExist;
             this->maxCapacity = n;
             this->fpRate = fpRate;
-            this->algorithm = algorithm;
-            this->scheme = scheme;
+            this->algorithm = this->algorithm.empty() ? algorithm : this->algorithm;
+            this->scheme = this->scheme.empty() ? scheme : this->scheme;
             this->hashGen = new Hash32::HashGen{this->k, this->m};
             cout << "[LOG] A Static filter created with m="<<this->m<<" k="<<this->k<<".\n";
         }
@@ -126,7 +138,7 @@ namespace BloomFilterModels
             string algorithm = Defaults::HASH_ALGORITHM,
             string scheme = Defaults::HASH_SCHEME)
         {
-            //@ automatically destroy the last buckets and assign a new one
+            //@ automatically override the last buckets and assign a new one
             this->isInitted = true;
             this->m = BloomFilterApp::Utils::OptimalMCounting(n, fpRate);
             this->k = k == 0 ? BloomFilterApp::Utils::OptimalKCounting(fpRate) : k;
@@ -134,16 +146,29 @@ namespace BloomFilterModels
             this->count = countExist;
             this->maxCapacity = n;
             this->fpRate = fpRate;
-            this->algorithm = algorithm;
-            this->scheme = scheme;
+            this->algorithm = this->algorithm.empty() ? algorithm : this->algorithm;
+            this->scheme = this->scheme.empty() ? scheme : this->scheme;
             this->hashGen = new Hash32::HashGen{this->k, this->m};
             cout << "[LOG] A Static filter created with m="<<this->m<<" k="<<this->k<<".\n";
         }
 
+        bool isInittedStatus() const
+        {
+            return this->isInitted;
+        }
+
+        void ResetHashing(
+            string algorithm , string scheme
+        )
+        {
+            this->algorithm = algorithm;
+            this->scheme = scheme;
+        };
+
         // :TODO
-        StaticFilter* Duplicate(uint32_t capacity, double fpRate, int k) {
+        shared_ptr<AbstractFilter> Duplicate(uint32_t capacity, double fpRate, int k) {
             // : duplicate itself with some minor changes as input parameters if needed
-            throw logic_error("Duplicate is not installed in this Static-liked filter!.\n");
+            throw logic_error("Duplicate is not installed in this Static filter!.\n");
             return nullptr;
         }
 

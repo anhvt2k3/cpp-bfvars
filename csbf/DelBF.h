@@ -88,6 +88,13 @@ namespace BloomFilterModels
             return fpRate;
         }
 
+        shared_ptr<AbstractFilter> Duplicate(uint32_t capacity, double fpRate, int k) {
+            // Duplicate itself with some minor changes as input parameters if needed
+            auto newFilter = make_shared<DeletableBloomFilter>(capacity, Defaults::BUCKET_SIZE, fpRate, k);
+            newFilter->ResetHashing(algorithm, scheme);
+            return newFilter;
+        }
+
         // Tests for membership of the data.
         // Returns true if the data is probably a member, false otherwise.
         bool Test(const std::vector<uint8_t> &data) const

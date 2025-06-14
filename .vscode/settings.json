@@ -136,7 +136,8 @@
     "variant": "cpp",
     "format": "cpp",
     "ranges": "cpp",
-    "text_encoding": "cpp"
+    "text_encoding": "cpp",
+    "expected": "cpp"
   },
   "cmake.sourceDirectory": "D:/Desktop/csbf/utils/hasher/hash-suite",
   "C_Cpp.dimInactiveRegions": false

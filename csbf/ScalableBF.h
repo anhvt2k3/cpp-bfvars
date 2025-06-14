@@ -656,39 +656,49 @@ public:
     
     
     class GenericScalableBloomFilter : public DynamicFilter, public ScalableBase {
-        // vector<shared_ptr<StandardBloomFilter>> filters;
+        // vector<shared_ptr<AbstractFilter>> filters;
         double r; // Tightening ratio
         double fp; // Target false-positive rate
         uint32_t p; // Maximum item count for each StandardBloomFilter
         uint32_t s; // Scalable growth factor
-        time_t syncDate; // Synchronization date
 
-        // Adds a new filter to the list with restricted false-positive rate.
-        // :TODO
-        int AddFilter(const vector<vector<uint8_t>>& data = {}) {
+        // Adds a new filter based on the properties of the last filter
+        int AddFilter() {
             // Calculate false-positive rate and capacity for the new filter
             double fpRate = fp * pow(r, filters.size());
             uint32_t capacity = p * pow(s, filters.size());
-            
-            uint32_t k_ = 0;
-            k_ = (!filters.empty()) ? TightenedK(filters.front()->K(),filters.size()-1,r) : 0;
+            uint32_t k_ = (!filters.empty()) ? TightenedK(filters.front()->K(),filters.size()-1,r) : 0;
 
-            auto new_filter = filters.back()->Duplicate(capacity, fpRate, k_);
-            filters.push_back(make_shared<StandardBloomFilter>(capacity, 1, fpRate, k_));
-            // cout << "Filter added " << filters.size()  << " "<< newFilter->Size() << endl;
+            // Get a new filter with adjusted parameters by duplicating last filter
+            auto newFilter = filters.back()->Duplicate(capacity, fpRate, k_);
+            filters.push_back(newFilter);
             return 0;
         }
     public:
-        GenericScalableBloomFilter(shared_ptr<StaticFilter> subfilter) : r   (Defaults::TIGHTENING_RATIO),
-                                        fp  (Defaults::FALSE_POSITIVE_RATE),
-                                        p   (Defaults::MAX_COUNT_NUMBER),
-                                        s   (Defaults::SCALABLE_GROWTH)
+        GenericScalableBloomFilter(std::shared_ptr<AbstractFilter> initialFilter, 
+            double tightening_ratio = Defaults::TIGHTENING_RATIO,
+            double false_positive_rate = Defaults::FALSE_POSITIVE_RATE,
+            uint32_t max_count = Defaults::MAX_COUNT_NUMBER,
+            uint32_t growth_factor = Defaults::SCALABLE_GROWTH)
+        : r(tightening_ratio), fp(false_positive_rate), p(max_count), s(growth_factor) 
         {
-            cout << "ScaleStdBF created without params.\n";
-            // :TODO
-            filters.push_back(subfilter);
-            // AddFilter(); // Add the first filter
+            // * initialFilter must not be Init() yet
+            if (initialFilter->isInittedStatus()) {
+                throw std::runtime_error("Initial filter must not be initialized.");
+            }
+            initialFilter->Init(max_count);
+            filters.push_back(initialFilter);
         }
+
+        virtual void ResetHashing(
+            string algorithm = Defaults::HASH_ALGORITHM,
+            string scheme = Defaults::HASH_SCHEME
+        )
+        {
+            for (auto& filter : filters) {
+                filter->ResetHashing(algorithm, scheme);
+            }
+        };
         
         string getFilterName() const {
             return "ScalableStandardBloomFilter";
@@ -698,9 +708,8 @@ public:
             return "ScalableSBF";
         }
 
-
         std::string getConfigure() {
-            std::string res = "_ _ _ CSBF Scope _ _ _ \n";
+            std::string res = "_ _ _ CSBF Scope _p _ _ \n";
             res += "Tightening-ratio: " + std::__cxx11::to_string(r) + "\n";
             res += "False positive rate: " + std::__cxx11::to_string(FPrate()) + "\n";
             res += "Current capacity: " + std::__cxx11::to_string(Capacity()) + "\n";
@@ -767,8 +776,9 @@ public:
         // Adds the data to the filter->
         // Returns a reference to the filter for chaining.
         GenericScalableBloomFilter& Add(const std::vector<uint8_t>& data) {
-            if (filters.empty() || std::all_of(filters.begin(), filters.end(), [](const auto& filter) { return filter->Count() == filter->Capacity(); })) {
-                AddFilter(); // Add a new filter if all filters are full
+            // Check if we need a new filter (current one is full)
+            if (filters.empty() || filters.back()->Count() >= filters.back()->Capacity()) {
+                AddFilter();
             }
             // cout << "csbf-Adding: " << data.data() << endl;
             // cout << filters.back().Size() << endl;

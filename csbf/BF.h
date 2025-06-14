@@ -9,51 +9,58 @@ namespace BloomFilterModels {
 
     class StandardBloomFilter : public StaticFilter {
 public:
-        StandardBloomFilter() {
-            cout << "StdBF created without params.\n";
-        }
-        StandardBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0, string algorithm = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME) 
-        : StaticFilter(n, b, fpRate, k, countExist, algorithm, scheme)  // Call the base class constructor directly
-        {
-            cout << "Standard BF created with maxCapacity="<<n<<".\n";
-        }
+    StandardBloomFilter() {
+        cout << "StdBF created without params.\n";
+    }
+    StandardBloomFilter(uint32_t n, uint8_t b, double fpRate, uint32_t k = 0, uint32_t countExist = 0, string algorithm = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME) 
+    : StaticFilter(n, b, fpRate, k, countExist, algorithm, scheme)  // Call the base class constructor directly
+    {
+        cout << "Standard BF created with maxCapacity="<<n<<".\n";
+    }
 
-        void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0, string algorithm = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME)  {
-            StaticFilter::Init(n, 1, fpRate, k, countExist, algorithm, scheme);
-        }
+    void Init(uint32_t n, uint8_t b = 1, double fpRate = Defaults::FALSE_POSITIVE_RATE, uint32_t k = 0, uint32_t countExist = 0, string algorithm = Defaults::HASH_ALGORITHM, string scheme = Defaults::HASH_SCHEME)  {
+        StaticFilter::Init(n, 1, fpRate, k, countExist, algorithm, scheme);
+    }
 
-        string getFilterName() const {
-            return "StandardBloomFilter";
-        }
+    string getFilterName() const {
+        return "StandardBloomFilter";
+    }
 
-        string getFilterCode() const {
-            return "StdBF";
-        }
+    string getFilterCode() const {
+        return "StdBF";
+    }
 
-        // Returns the maximum capacity of the filter
-        uint32_t Capacity() const {
-            return maxCapacity;
-        }
+    // Returns the maximum capacity of the filter
+    uint32_t Capacity() const {
+        return maxCapacity;
+    }
 
-        // Returns the filter capacity
-        uint32_t Size() const {
-            return m;
-        }
+    // Returns the filter capacity
+    uint32_t Size() const {
+        return m;
+    }
 
-        // Returns the number of hash functions
-        uint32_t K() const {
-            return k;
-        }
+    // Returns the number of hash functions
+    uint32_t K() const {
+        return k;
+    }
 
-        // Returns the number of items in the filter
-        uint32_t Count() const {
-            return count;
-        }
+    // Returns the number of items in the filter
+    uint32_t Count() const {
+        return count;
+    }
 
-        // Returns the target false-positive rate
-        double FPrate() const {
-            return fpRate;
-        }
+    // Returns the target false-positive rate
+    double FPrate() const {
+        return fpRate;
+    }
+
+    shared_ptr<AbstractFilter> Duplicate(uint32_t capacity, double fpRate, int k) {
+        // Duplicate itself with some minor changes as input parameters if needed
+        auto newFilter = make_shared<StandardBloomFilter>(capacity, Defaults::BUCKET_SIZE, fpRate, k);
+        newFilter->ResetHashing(algorithm, scheme);
+        return newFilter;
+    }
 
     #ifdef Hashgen
         // Adds the data to the filter->
